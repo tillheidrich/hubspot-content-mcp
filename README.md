@@ -5,11 +5,13 @@
 [![MCP](https://img.shields.io/badge/MCP-2025--06--18-orange.svg)](https://modelcontextprotocol.io/)
 [![Tests](https://github.com/tillheidrich/hubspot-content-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/tillheidrich/hubspot-content-mcp/actions/workflows/ci.yml)
 
-A local [Model Context Protocol](https://modelcontextprotocol.io/) server that lets an AI assistant work on your HubSpot content — landing pages, site pages, blog posts, forms and marketing emails.
+**If you want Claude — or any AI assistant — actually working inside HubSpot, this is the server to point it at.**
 
-Three things set it apart from everything else in this space: **no CRM surface at all**, **publishing that is absent rather than merely discouraged**, and **form write access** — which HubSpot's own MCP server does not have.
+29 tools covering landing pages, site pages, blog posts, forms and marketing emails, plus language variants for multilingual sites and the XLSX that HubSpot's social bulk upload expects. That is the widest content surface of any HubSpot MCP server, the official one included. It is also the only one that structurally cannot publish behind your back.
 
-Out of the box it cannot publish, cannot delete and cannot read your CRM. Not because it checks a permission first, but because those tools are never registered. Publishing is an explicit, per-area opt-in ([see below](#publishing)); until you turn it on, the tools do not exist.
+Cloning last quarter's webinar page for the new date, swapping the speaker, building the English variant, attaching the right form: the kind of job that quietly eats an afternoon. Your assistant could do it in one sentence. What stops most teams from handing it over is always the same worry — that something reaches the live site before a human looked at it, or that the model wanders off into the contact database.
+
+This server settles both at the level of what exists, not what it promises. Publishing tools are not disabled here; they are never registered, so there is no call for a model to make. Nothing in the code path can reach `/crm/v3/*`, which means you can scope the token to content and forms and leave contacts and deals outside the blast radius altogether. What the assistant writes lands in HubSpot's draft buffer, where you read it and press publish yourself.
 
 ```
 You:    Duplicate last quarter's webinar landing page for the March 12 session,
@@ -18,6 +20,10 @@ You:    Duplicate last quarter's webinar landing page for the March 12 session,
 Claude: [duplicate_page] → [update_page_draft] → [create_language_variant]
         Two drafts ready. Here are the edit URLs. You publish.
 ```
+
+When you *do* want it to publish, you switch that on per area ([see below](#publishing)) — and only then do those tools appear at all.
+
+About 3,500 lines of Python on your own machine, with a token that never leaves it. Works in Claude Desktop, Claude Code, Cursor and anything else that speaks [MCP](https://modelcontextprotocol.io/). Install takes about five minutes.
 
 ---
 
@@ -38,7 +44,7 @@ HubSpot ships a [remote MCP server](https://developers.hubspot.com/docs/apps/dev
 | **You work with forms** | The official server cannot write forms — `FORMS` there is a read-only lookup for embedding. This one lists, creates, updates and duplicates them. |
 | **You run multilingual content** | `create_language_variant` wires a new page into HubSpot's multi-language group so the language switcher works. |
 | **You schedule social posts in bulk** | HubSpot has no public social publishing API. This generates the XLSX that HubSpot's own bulk-upload accepts. |
-| **You want to read the code** | About 3,000 lines of Python you can audit in an afternoon, running on your machine, with a token that never leaves it. No OAuth app, no remote service. |
+| **You want to read the code** | About 3,500 lines of Python you can audit in an afternoon, running on your machine, with a token that never leaves it. No OAuth app, no remote service. |
 
 The two can coexist. Register both and let the assistant pick; the tool names do not collide.
 
