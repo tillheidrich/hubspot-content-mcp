@@ -22,7 +22,13 @@ Scheduling is the same `/schedule` endpoint for both, with the ID in the body
 rather than the path.
 
 Cancelling a schedule has no v3 endpoint at all — the only documented route is
-the legacy v2 Content API's publish-action.
+the legacy v2 Content API's publish-action. The same endpoint is how a live
+page or post is taken down again; v3 has no unpublish for CMS content.
+
+Marketing emails are different again. `/marketing/v3/emails/{id}/publish` and
+`/unpublish` do exist, but HubSpot gates them behind Marketing Hub Enterprise
+or the transactional email add-on. On a Professional portal they answer 403,
+which is a billing fact rather than a bug — the error text says so.
 """
 
 from __future__ import annotations
@@ -156,3 +162,42 @@ def cancel_scheduled_publish(client: HubSpotClient, kind: ContentKind, content_i
         f"/content/api/v2/{segment}/{cid}/publish-action",
         json_body={"action": "cancel-publish"},
     )
+
+
+def unpublish_content(client: HubSpotClient, kind: ContentKind, content_id: str) -> None:
+    """Take a live page or post down again.
+
+    v3 has no unpublish for CMS content; the legacy v2 publish-action is the
+    only documented route, the same one `cancel_scheduled_publish` uses. The
+    content is not deleted — it returns to draft and the URL stops serving it.
+    Confirm the result in the UI.
+    """
+    cid = path_segment(content_id, field="content_id")
+    segment = "pages" if kind == "page" else "blog-posts"
+    client.post(
+        f"/content/api/v2/{segment}/{cid}/publish-action",
+        json_body={"action": "unpublish"},
+    )
+
+
+# --- marketing emails -------------------------------------------------------
+
+
+def publish_marketing_email(client: HubSpotClient, email_id: str) -> Any:
+    """Send or schedule a marketing email according to its own settings.
+
+    Requires Marketing Hub Enterprise or the transactional email add-on. On
+    portals without either, HubSpot answers 403.
+    """
+    eid = path_segment(email_id, field="email_id")
+    return client.post(f"/marketing/v3/emails/{eid}/publish")
+
+
+def unpublish_marketing_email(client: HubSpotClient, email_id: str) -> Any:
+    """Withdraw a marketing email that has not gone out yet.
+
+    Same tier requirement as publishing. Mail already delivered cannot be
+    recalled by this or anything else.
+    """
+    eid = path_segment(email_id, field="email_id")
+    return client.post(f"/marketing/v3/emails/{eid}/unpublish")

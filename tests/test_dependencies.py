@@ -51,3 +51,32 @@ def test_pyproject_pins_an_upper_bound_on_mcp():
         f"mcp dependency {match.group(0)} has no upper bound. "
         f"2.x is API-incompatible with this code."
     )
+
+
+def test_the_handshake_reports_our_version_not_the_sdks():
+    """FastMCP has no version argument; we set it on the server underneath.
+
+    If a future SDK renames that attribute, the handshake silently starts
+    advertising the SDK's version as ours again. Nothing else would notice.
+    """
+    import os
+    import tempfile
+
+    os.environ.update(
+        HUBSPOT_ACCESS_TOKEN="ci",
+        HUBSPOT_PORTAL_ID="0",
+        OUTPUT_DIR=tempfile.mkdtemp(),
+        LOG_DIR=tempfile.mkdtemp(),
+    )
+    from hubspot_content_mcp import __version__
+    from hubspot_content_mcp.config import Settings
+    from hubspot_content_mcp.server import build_server
+
+    server = build_server(Settings.load())
+    try:
+        options = server._mcp_server.create_initialization_options()
+    finally:
+        server._hubspot_client.close()
+
+    assert options.server_version == __version__
+    assert options.server_name == "hubspot-content"

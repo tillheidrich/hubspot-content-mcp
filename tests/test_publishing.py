@@ -1,7 +1,9 @@
-"""Publishing is opt-in. These tests pin both halves of that.
+"""Publishing is on by default and switchable off, per area.
 
-When ALLOW_PUBLISH is unset the tools must be absent from the tool list —
-not present-but-refusing. Absent is the guarantee the README sells.
+Since 0.4.0 the default install can publish. What these tests pin is that
+the switch still works in both directions: ALLOW_PUBLISH=none must leave the
+tools absent from the tool list, not present-but-refusing, and a named area
+must enable that area and no other. Absent is what the README sells.
 """
 
 from __future__ import annotations
@@ -22,8 +24,12 @@ LP = f"{API}/cms/v3/pages/landing-pages"
 PUBLISH_TOOLS = {
     "publish_page",
     "schedule_page_publish",
+    "unpublish_page",
     "publish_blog_post",
     "schedule_blog_post_publish",
+    "unpublish_blog_post",
+    "publish_marketing_email",
+    "unpublish_marketing_email",
     "cancel_scheduled_publish",
 }
 
@@ -49,12 +55,13 @@ def _tool_names(settings) -> set[str]:
         server._hubspot_client.close()
 
 
-# --- the default is no publishing at all ------------------------------------
+# --- the default, and switching it off --------------------------------------
 
 
-def test_no_publish_tools_exist_by_default(tmp_path, monkeypatch):
+def test_publishing_is_on_by_default(tmp_path, monkeypatch):
+    """0.4.0 flipped this. The test exists so the flip cannot happen twice."""
     names = _tool_names(_settings(tmp_path, monkeypatch, None))
-    assert not (names & PUBLISH_TOOLS), "publishing must be absent unless opted in"
+    assert names >= PUBLISH_TOOLS
 
 
 @pytest.mark.parametrize("value", ["none", "off", "false", "0", ""])
@@ -63,11 +70,12 @@ def test_explicit_off_values_disable_publishing(tmp_path, monkeypatch, value):
     assert not (names & PUBLISH_TOOLS)
 
 
-def test_default_instructions_say_the_server_cannot_publish(tmp_path, monkeypatch):
+def test_instructions_say_so_when_publishing_is_off(tmp_path, monkeypatch):
     from hubspot_content_mcp.server import build_instructions
 
-    text = build_instructions(_settings(tmp_path, monkeypatch, None))
-    assert "cannot publish" in text.lower()
+    text = build_instructions(_settings(tmp_path, monkeypatch, "none"))
+    assert "Publishing is OFF" in text
+    assert "no publish tool" in text
 
 
 # --- opting in --------------------------------------------------------------
@@ -89,17 +97,25 @@ def test_unknown_area_is_rejected_with_a_helpful_message(tmp_path, monkeypatch):
         _settings(tmp_path, monkeypatch, "pages,contacts")
 
 
-def test_emails_are_not_publishable(tmp_path, monkeypatch):
-    """HubSpot's email publish endpoint is undocumented — we do not guess it."""
-    with pytest.raises(RuntimeError, match="Marketing emails cannot be published"):
-        _settings(tmp_path, monkeypatch, "emails")
+def test_emails_are_publishable_on_their_own(tmp_path, monkeypatch):
+    """ALLOW_PUBLISH=emails must enable mail and nothing else.
+
+    The email tools reach HubSpot's /publish endpoint, which needs Marketing
+    Hub Enterprise or the transactional add-on. That gate is HubSpot's and
+    shows up as a 403 at call time; it is not a reason to withhold the tool.
+    """
+    names = _tool_names(_settings(tmp_path, monkeypatch, "emails"))
+    assert "publish_marketing_email" in names
+    assert "unpublish_marketing_email" in names
+    assert "publish_page" not in names
+    assert "publish_blog_post" not in names
 
 
 def test_enabled_instructions_name_the_areas(tmp_path, monkeypatch):
     from hubspot_content_mcp.server import build_instructions
 
     text = build_instructions(_settings(tmp_path, monkeypatch, "pages"))
-    assert "ENABLED" in text
+    assert "Publishing is ON" in text
     assert "pages" in text
 
 

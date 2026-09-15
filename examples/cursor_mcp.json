@@ -1,0 +1,20 @@
+{
+  "//": "Cursor — ~/.cursor/mcp.json for every project, or .cursor/mcp.json for one.",
+  "//2": "Same shape as Claude Desktop. ALLOW_CRM defaults to none; leave it that way unless you need contact data.",
+  "mcpServers": {
+    "hubspot-content": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/hubspot-content-mcp",
+        "run",
+        "hubspot-content-mcp"
+      ],
+      "env": {
+        "HUBSPOT_MCP_ENV_FILE": "/absolute/path/to/hubspot-content-mcp/.env",
+        "ALLOW_PUBLISH": "pages,blog",
+        "ALLOW_CRM": "none"
+      }
+    }
+  }
+}

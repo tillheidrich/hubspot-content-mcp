@@ -1,0 +1,19 @@
+# Codex CLI — ~/.codex/config.toml
+#
+# Codex speaks MCP over stdio, same as everything else here. Point it at the
+# checkout and it picks up all the tools.
+
+[mcp_servers.hubspot-content]
+command = "uv"
+args = [
+  "--directory", "/absolute/path/to/hubspot-content-mcp",
+  "run", "hubspot-content-mcp",
+]
+
+[mcp_servers.hubspot-content.env]
+HUBSPOT_MCP_ENV_FILE = "/absolute/path/to/hubspot-content-mcp/.env"
+
+# Defaults if you leave these out: publishing on for every content area,
+# CRM off. Set them explicitly if you want a narrower install.
+ALLOW_PUBLISH = "pages,blog"
+ALLOW_CRM     = "none"

@@ -1,0 +1,20 @@
+{
+  "//": "VS Code — .vscode/mcp.json in the workspace. Note the key is 'servers', not 'mcpServers', and the type must be stated.",
+  "servers": {
+    "hubspot-content": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/hubspot-content-mcp",
+        "run",
+        "hubspot-content-mcp"
+      ],
+      "env": {
+        "HUBSPOT_MCP_ENV_FILE": "/absolute/path/to/hubspot-content-mcp/.env",
+        "ALLOW_PUBLISH": "pages,blog",
+        "ALLOW_CRM": "none"
+      }
+    }
+  }
+}

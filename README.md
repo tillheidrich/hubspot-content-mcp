@@ -5,57 +5,73 @@
 [![MCP](https://img.shields.io/badge/MCP-2025--06--18-orange.svg)](https://modelcontextprotocol.io/)
 [![Tests](https://github.com/tillheidrich/hubspot-content-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/tillheidrich/hubspot-content-mcp/actions/workflows/ci.yml)
 
-**If you want Claude — or any AI assistant — actually working inside HubSpot, this is the server to point it at.**
+**If you want an AI assistant actually working inside HubSpot, this is the server to point it at.**
 
-29 tools covering landing pages, site pages, blog posts, forms and marketing emails, plus language variants for multilingual sites and the XLSX that HubSpot's social bulk upload expects. That is the widest content surface of any HubSpot MCP server, the official one included. It is also the only one that structurally cannot publish behind your back.
+65 tools across landing pages, site pages, blog posts, forms, marketing emails, campaigns and the CRM. Create, edit, schedule, publish, take back down. Language variants for multilingual sites, the XLSX that HubSpot's social bulk upload expects, and campaign attribution wired up as you go. It is the widest HubSpot surface any MCP server offers, the official one included.
 
-Cloning last quarter's webinar page for the new date, swapping the speaker, building the English variant, attaching the right form: the kind of job that quietly eats an afternoon. Your assistant could do it in one sentence. What stops most teams from handing it over is always the same worry — that something reaches the live site before a human looked at it, or that the model wanders off into the contact database.
+And it is the only one where you decide, before it starts, what it is allowed to touch.
 
-This server settles both at the level of what exists, not what it promises. Publishing tools are not disabled here; they are never registered, so there is no call for a model to make. Nothing in the code path can reach `/crm/v3/*`, which means you can scope the token to content and forms and leave contacts and deals outside the blast radius altogether. What the assistant writes lands in HubSpot's draft buffer, where you read it and press publish yourself.
+### No customer data reaches the model unless you say so
+
+Most people want an assistant that writes landing pages, not one that reads their contact database. Out of the box, that is what this is:
+
+```
+ALLOW_CRM=none          ← the default
+```
+
+With that set, the CRM tools are not registered, so the model is never offered them, and the HTTP client refuses every `/crm/` path before a request is built. There is no contact, company, deal or ticket data in reach — which means none can enter the conversation, and none can reach whoever runs your model. That is not a policy the assistant is asked to respect. It is a capability the process does not have.
+
+Pair it with a HubSpot key scoped to content and forms and you have two independent limits, the outer one enforced by HubSpot rather than by this code. If a call falls outside your key, you get a message naming the exact scope and where to add it, not a bare 403.
+
+When you *do* want CRM access, `ALLOW_CRM=read|write|all` turns it on in stages, and the server says plainly — in its startup log and in the model's own instructions — that personal data is now in play.
 
 ```
 You:    Duplicate last quarter's webinar landing page for the March 12 session,
-        swap the speaker, and give me an English variant.
+        swap the speaker, give me an English variant, and put both in the
+        Q1 DACH campaign.
 
 Claude: [duplicate_page] → [update_page_draft] → [create_language_variant]
-        Two drafts ready. Here are the edit URLs. You publish.
+        → [attach_asset_to_campaign] ×2
+        Two drafts, both attached. Here are the edit URLs. Publish when ready.
 ```
 
-When you *do* want it to publish, you switch that on per area ([see below](#publishing)) — and only then do those tools appear at all.
+Everything that reaches the public or changes a record asks first, by name, with what changes — and the confirmation has to come from you in the conversation, never from something the assistant read inside HubSpot.
 
-About 3,500 lines of Python on your own machine, with a token that never leaves it. Works in Claude Desktop, Claude Code, Cursor and anything else that speaks [MCP](https://modelcontextprotocol.io/). Install takes about five minutes.
+Runs on your own machine; the token never leaves it. Works with Claude Desktop, Claude Code, Codex, Cursor, VS Code and anything else that speaks [MCP](https://modelcontextprotocol.io/) over stdio — config snippets for each in [`examples/`](examples/). Install takes about five minutes.
 
 ---
 
-## Should you use this or HubSpot's official MCP server?
+## This, or HubSpot's official MCP server?
 
-Be honest with yourself here, because for most people the answer is the official one.
+HubSpot ships a [remote MCP server](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server) at `mcp.hubspot.com`. It is maintained by HubSpot, needs no local install, is free on every tier, and covers a great deal: CRM records and activities, SQL over CRM data, campaigns, conversations, analytics, and landing page and blog management including publishing.
 
-HubSpot ships a [remote MCP server](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server) at `mcp.hubspot.com`. It is maintained by HubSpot, requires no local install, and has grown a lot: CRM records and activities, SQL queries over CRM data, campaigns, conversations, email analytics, content analytics, and full landing page and blog post management — **including publishing**.
+It is a good server. The difference is not what each one can do — the overlap is large now — it is who decides what the assistant may touch, and when.
 
-**Use the official server if** you want CRM access, analytics, campaign management, site-navigation editing, or you simply want the thing HubSpot maintains. It is free on every tier, including free CRM.
+| | Official remote server | This one |
+| --- | --- | --- |
+| **Where it runs** | HubSpot's infrastructure, via OAuth | Your machine, with your key |
+| **Deciding the data boundary** | Your key's scopes | Your key's scopes, *and* a per-area switch enforced before any request is built |
+| **CRM by default** | On | Off, and unreachable — no tool, no path |
+| **Publishing** | Always present; relies on the model honouring "confirm first" | Present per area, removable entirely, and every call needs confirmation from you in the conversation |
+| **Form write** | No — `FORMS` is a read-only lookup | Yes: list, create, update, duplicate |
+| **Multilingual** | No | `create_language_variant` wires the page into HubSpot's language group |
+| **Social scheduling** | No | Generates the XLSX HubSpot's bulk upload accepts (there is no public social API) |
+| **Auditability** | Closed | ~5,100 lines of Python you can read in an afternoon |
 
-**Use this one if** one of these is true:
+**Take the official one** if you want the thing HubSpot maintains, you need analytics or conversations, and the default of "the assistant can see everything my key can see" suits you. Nothing here is a criticism of it.
 
-| Need | Why this server |
-| --- | --- |
-| **Nothing may go live without a human** | The official server always carries `PUBLISH` and relies on the model honouring "confirm first" — a prompt-level guard. Here it is capability-level: publishing is off by default and the tools are not registered at all. When you do enable it, it is per-area, every call needs explicit confirmation, and each one is logged. |
-| **The assistant must not reach the CRM** | No tool here calls `/crm/v3/*`. Your token can be scoped to content and forms only, so contacts and deals are outside the blast radius entirely. |
-| **You work with forms** | The official server cannot write forms — `FORMS` there is a read-only lookup for embedding. This one lists, creates, updates and duplicates them. |
-| **You run multilingual content** | `create_language_variant` wires a new page into HubSpot's multi-language group so the language switcher works. |
-| **You schedule social posts in bulk** | HubSpot has no public social publishing API. This generates the XLSX that HubSpot's own bulk-upload accepts. |
-| **You want to read the code** | About 3,500 lines of Python you can audit in an afternoon, running on your machine, with a token that never leaves it. No OAuth app, no remote service. |
+**Take this one** if any of these is true: customer data must be provably out of reach; nothing may reach the public without a named human saying yes; you work with forms or multilingual content; you want to run it somewhere other than Claude; or you want to read the code that holds your key.
 
-The two can coexist. Register both and let the assistant pick; the tool names do not collide.
+The two coexist. Register both and let the assistant pick — the tool names do not collide.
 
 <details>
 <summary><strong>How this compares to other community HubSpot MCP servers</strong></summary>
 
-Almost all of them are CRM. The most-starred community HubSpot MCP has ~128 stars and seven tools — contacts, companies, engagements — and no content tools at all. The next has ~35 stars and ~100 tools, all CRM. Searching PyPI and npm for HubSpot MCP packages returns the same picture: no description mentions landing pages, blog posts or marketing emails.
+Almost all of them are CRM. The most-starred community HubSpot MCP has ~128 stars and seven tools — contacts, companies, engagements — and no content tools. The next has ~35 stars and ~100 tools, also all CRM. Searching PyPI and npm returns the same picture: no description mentions landing pages, blog posts or marketing emails.
 
-A handful of repos do touch CMS content, all at 0–1 stars, and none combines drafts-only with form write and no CRM surface. One of them ships `push_live`, `schedule` and `delete` ungated and binds to `0.0.0.0` with optional auth.
+A handful of repos do touch CMS content, all at 0–1 stars. One ships `push_live`, `schedule` and `delete` ungated while binding to `0.0.0.0` with optional auth.
 
-So the real comparison is HubSpot's own server, not the community ones.
+So the honest comparison is HubSpot's own server, not the community ones.
 
 </details>
 
@@ -152,9 +168,27 @@ All required checks passed. Ready to register with an MCP client.
 
 Quit Claude Desktop completely and reopen it. On Windows use forward slashes in the path, or escape the backslashes.
 
-### Anything else
+### Codex, Cursor, VS Code, Continue
 
-The server speaks stdio, so it works with Claude Code, Cursor, Cline, Zed, ChatGPT Desktop and the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) using the same command. To poke at it by hand:
+Plain stdio MCP, protocol `2025-06-18`, negotiating down to `2025-03-26` and `2024-11-05` for older clients. Nothing in it is Claude-specific. Ready-made snippets:
+
+| Client | File | Snippet |
+| --- | --- | --- |
+| Claude Desktop | `claude_desktop_config.json` | [examples/claude_desktop_config.json](examples/claude_desktop_config.json) |
+| Codex CLI | `~/.codex/config.toml` | [examples/codex_config.toml](examples/codex_config.toml) |
+| Cursor | `~/.cursor/mcp.json` | [examples/cursor_mcp.json](examples/cursor_mcp.json) |
+| VS Code | `.vscode/mcp.json` | [examples/vscode_mcp.json](examples/vscode_mcp.json) |
+| Continue | `~/.continue/config.yaml` | [examples/continue_config.yaml](examples/continue_config.yaml) |
+
+Watch the key names: Claude Desktop and Cursor use `mcpServers`, VS Code uses `servers` and wants `"type": "stdio"`, Codex uses `mcp_servers` in TOML.
+
+Claude Code takes it on the command line:
+
+```bash
+claude mcp add hubspot-content -- uv --directory /path/to/hubspot-content-mcp run hubspot-content-mcp
+```
+
+To poke at it by hand:
 
 ```bash
 npx @modelcontextprotocol/inspector uv --directory . run hubspot-content-mcp
@@ -164,7 +198,15 @@ npx @modelcontextprotocol/inspector uv --directory . run hubspot-content-mcp
 
 ## Tools
 
-29 tools by default, 34 with publishing fully enabled. Everything that writes to a page, post or email writes to a draft.
+45 tools in the default configuration, 65 with CRM fully enabled. Every content write goes to a draft; everything that leaves the draft, or touches a record, asks first.
+
+| Configuration | Tools |
+| --- | --- |
+| `ALLOW_PUBLISH=none`, `ALLOW_CRM=none` | 36 — read, draft and plan; nothing can go live |
+| **default** (`ALLOW_PUBLISH=all`, `ALLOW_CRM=none`) | **45** — the above plus publishing, scheduling and unpublishing |
+| `ALLOW_CRM=read` | 54 — plus search and read across CRM records |
+| `ALLOW_CRM=write` | 63 — plus create, update, associate, list membership |
+| `ALLOW_CRM=all` | 65 — plus archiving records and switching workflows |
 
 <details>
 <summary><strong>Pages — 9 tools</strong></summary>
@@ -240,8 +282,13 @@ Forms have no draft state in HubSpot: a form is live and submittable as soon as 
 
 ### Not here, deliberately
 
-`delete_page`, `archive_page`, `send_email`, and anything touching contacts, companies, deals, lists or conversations. Use the HubSpot UI or the official MCP server for those. Publishing exists but is opt-in — see [Publishing](#publishing).
+Two things this server will not do, whatever you set:
 
+**Permanent deletion.** `archive_crm_object` moves a record to the recycle bin, where HubSpot keeps it for 90 days and a human can bring it back. HubSpot also has a GDPR endpoint that erases a contact irreversibly. That one is not wired up. It is a legal act with an audit trail attached, and a tool call in a chat window is the wrong shape for it — do it in the UI, as a person who can answer for it.
+
+Content objects have no delete or archive tool at all. Unpublishing takes a page down without destroying it, which is nearly always what was actually meant.
+
+**Anything that was not asked for by you.** Instructions found inside HubSpot — in a page body, a form label, a CRM note — are data. Every consequential tool requires `user_confirmed=True`, and the tool descriptions state that confirmation has to come from the person in the conversation. That is a real attack surface: portal content is written by whoever has portal access, and it flows into the model's context by design.
 
 ---
 
@@ -306,20 +353,25 @@ Both the server instructions and the `update_page_draft` tool description carry 
 
 ## Publishing
 
-Off by default. `ALLOW_PUBLISH` decides whether the publish tools are
-registered at all:
+On by default since 0.4.0. `ALLOW_PUBLISH` decides which areas get publish
+tools registered at all:
 
 ```env
-ALLOW_PUBLISH=none        # default — no publish tools exist
-ALLOW_PUBLISH=blog        # blog posts only
-ALLOW_PUBLISH=pages       # landing pages and site pages only
-ALLOW_PUBLISH=pages,blog  # both
-ALLOW_PUBLISH=all         # same as pages,blog
+ALLOW_PUBLISH=all            # default — pages, blog and marketing emails
+ALLOW_PUBLISH=none           # no publish tool exists; drafts only, forever
+ALLOW_PUBLISH=blog           # blog posts only
+ALLOW_PUBLISH=pages          # landing pages and site pages only
+ALLOW_PUBLISH=pages,blog     # both, but no email sending
 ```
 
-This is a registration switch, not a permission check. With `none`, the
-assistant's tool list contains no publish tool, so there is nothing to talk it
-into.
+Each area brings publish, schedule and unpublish. This is a registration
+switch, not a permission check: with `none`, the assistant's tool list
+contains no publish tool, so there is nothing to talk it into.
+
+**Marketing email publishing needs Marketing Hub Enterprise or the
+transactional email add-on.** HubSpot gates `/publish` behind those, whatever
+scopes the key carries. On other tiers the tool is registered and HubSpot
+answers 403 — the error says so in plain words rather than looking like a bug.
 
 **Per task rather than permanently**: register the server twice in your MCP
 client — once as `hubspot-content` with `ALLOW_PUBLISH=none`, once as
@@ -366,21 +418,27 @@ not offer it. Publish emails in the HubSpot UI.
 
 ## How the safety model actually works
 
-Three independent layers, because one is not enough when an LLM is choosing the calls.
+Six independent layers, because one is not enough when a language model is choosing the calls.
 
-**1. The tool does not exist.** With the default config, no amount of prompting produces a publish, delete or CRM call, because MCP rejects unknown tool names at the protocol level. This is the layer that matters.
+**1. The tool does not exist.** Capability is decided once, at registration. A group the configuration did not enable is absent from the tool list, and MCP rejects unknown tool names at the protocol level. There is nothing for a prompt to talk its way past. This is the layer that matters, and it is why `ALLOW_CRM=none` is a guarantee rather than a preference.
 
-**2. Writes target the draft buffer.** Every update goes to `PATCH {id}/draft`, not `PATCH {id}`. This distinction is easy to get wrong — HubSpot's bare PATCH edits the *live* version of a published object — and getting it wrong silently overwrites production content. There are tests pinning the URL for pages, posts and emails.
+**2. The socket will not carry it either.** The HTTP client is built with the path surfaces the configuration enabled, and checks the *resolved* URL — host and prefix — before sending. A bug in a helper module cannot reach an endpoint this install did not enable. That check is what closed the path-traversal hole in 0.3.0, where an ID of `../../../crm/v3/objects/contacts` turned a form lookup into a CRM dump.
 
-**3. Dangerous fields are filtered before the request leaves.** `update_*` tools take a free-form dict, so an allow-list decides what survives. `state`, `publishDate`, `publishImmediately`, `isPublished`, `scheduledUpdateDate`, `archived` and friends are dropped in the HTTP layer regardless of caller, and creates hard-override `state="DRAFT"`. Rejected keys come back in `rejected_fields` rather than vanishing, so the model can tell the user what did not apply.
+**3. Your key is the outer limit.** Scopes are enforced by HubSpot, not by this code, so they hold even if both layers above fail. Scope the key to content and forms and the CRM is unreachable by construction. When HubSpot refuses on scope grounds, the error names the exact scope and where to add it instead of repeating HubSpot's own unhelpful sentence.
 
-**4. IDs are validated before they reach a URL.** httpx resolves `..` when merging a path onto the base URL, so an unvalidated ID of `../../../crm/v3/objects/contacts` turns a form lookup into a CRM dump. Every ID is checked against `^[A-Za-z0-9_-]{1,64}$`, and the client independently refuses any request whose resolved host or path prefix falls outside its declared surface.
+**4. Writes target the draft buffer.** Every content update goes to `PATCH {id}/draft`, never `PATCH {id}`. HubSpot's bare PATCH edits the *live* version of a published object, and getting that wrong silently overwrites production. Tests pin the URL for pages, posts and emails, and a CI gate greps for a bare patch in those three modules.
 
-**5. Fields that route data are not writable.** A form's notification recipients and post-submit redirect decide where submitted data goes; changing them is exfiltration, not editing. Same for a page's password protection. Both are refused.
+**5. Dangerous fields are filtered before the request leaves.** `update_*` takes a free-form dict, so an allow-list decides what survives. `state`, `publishDate`, `publishImmediately`, `archived` and friends are dropped in the HTTP layer regardless of caller. A form's notification recipients and post-submit redirect decide where submitted data goes — changing those is exfiltration, not editing, and they are refused. Rejected keys come back in `rejected_fields` rather than vanishing, so the assistant can tell you what did not apply.
 
-Plus the hygiene: the token is redacted from logs at any nesting depth and from tracebacks, HTTP-library loggers are pinned to WARNING so `LOG_LEVEL=DEBUG` cannot write an `Authorization` header to disk, `HUBSPOT_API_BASE` is allow-listed because the bearer token follows it, redirects are not followed, `.env` is not read from parent directories, spreadsheet cells are written as inert text so a `=cmd|...` payload cannot fire when you open the file, and raw `<head>` HTML is off unless you opt in.
+**6. Consequences require a named yes.** Everything that reaches the public, changes a person's record, or cannot be undone from here takes `user_confirmed`, defaulting to false. A test walks every registered tool in the most permissive configuration and fails if one of them is missing the gate — so a tool added later cannot quietly skip it.
 
-Run `pytest tests/test_safety.py tests/test_security.py` to check all of it — 164 tests, and the security ones are behavioural rather than grep-based.
+Plus the hygiene: the token is redacted from logs at any nesting depth and from tracebacks; HTTP-library loggers are pinned to WARNING so `LOG_LEVEL=DEBUG` cannot write an `Authorization` header to disk; `HUBSPOT_API_BASE` is host-allow-listed because the bearer token follows it; redirects are not followed; `.env` is not read from parent directories; spreadsheet cells are written as inert text so a `=cmd|...` payload cannot fire when the file is opened; raw `<head>` HTML is off unless you opt in.
+
+```bash
+uv run pytest tests/test_safety.py tests/test_security.py
+```
+
+The safety tests are behavioural, not grep-based. That distinction was learned the hard way: in an earlier version the greps stayed green while the traversal hole was wide open.
 
 ---
 
@@ -388,7 +446,7 @@ Run `pytest tests/test_safety.py tests/test_security.py` to check all of it — 
 
 ```bash
 uv sync --extra dev
-uv run pytest                    # 164 tests
+uv run pytest                    # 181 tests
 uv run ruff check src tests
 ```
 

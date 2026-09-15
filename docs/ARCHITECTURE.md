@@ -177,3 +177,54 @@ There is none. It is a local process started by your MCP client, distributed by
 A hosted multi-user version would need streamable HTTP transport, OAuth 2.1
 with PKCE, and per-user token storage — a different project, not a flag on this
 one. For that shape, HubSpot's own remote MCP server already exists.
+
+
+---
+
+## Where capability is decided
+
+One place, once: `build_server()` in `server.py`. It reads `Settings`, decides
+which tool modules to import and register, and constructs the HTTP client with
+the matching path surfaces.
+
+```
+Settings.crm_scope  ──┬──> register tools/crm.py (or not)
+                      └──> HubSpotClient(surfaces=[..., "crm"]) (or not)
+
+Settings.publish_scope ──> register tools/publishing.py, per area
+```
+
+Two consequences worth stating, because they are the whole design:
+
+**Absent, not refusing.** A tool group the configuration did not enable is
+never registered, so it is not in the tool list the model receives, and MCP
+rejects unknown tool names at the protocol level. There is no code path where
+a model asks and something says no — there is nothing to ask.
+
+**The socket agrees with the tool list.** `HubSpotClient` checks the resolved
+URL's host and path prefix against the surfaces it was built with. A helper
+module that somehow constructed a CRM path on a content-only install would be
+refused by the client before the request left the process. The two layers are
+independent on purpose: the first is about what a model can choose, the second
+about what this process can send.
+
+Neither replaces the token. Scopes are enforced by HubSpot, so they hold when
+both layers above fail. `client.scope_error_message()` translates the 403 into
+the specific scope and where to add it.
+
+## Module map
+
+```
+tools/pages.py        landing pages and site pages
+tools/blog.py         blog posts and authors
+tools/forms.py        forms
+tools/emails.py       marketing email drafts
+tools/campaigns.py    campaigns and asset attachment
+tools/social.py       social bulk-upload XLSX
+tools/discovery.py    domains, templates, blogs
+tools/publishing.py   publish, schedule, unpublish   — ALLOW_PUBLISH
+tools/crm.py          records, properties, lists, …  — ALLOW_CRM
+```
+
+Each mirrors a `hubspot/` module of the same name that knows the endpoints and
+nothing about MCP.

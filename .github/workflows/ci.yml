@@ -54,20 +54,23 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: No publish, delete or CRM tools may exist
+      - name: Safety guarantees hold
         run: uv run pytest tests/test_safety.py -v
 
-      - name: No CRM endpoints referenced anywhere in the source
+      - name: CRM paths live only in the opt-in module
         run: |
-          # A plain grep cannot tell an endpoint from prose, and it fired on
-          # the comment in client.py that documents the path-traversal fix by
-          # quoting the attack. Parse instead: flag CRM paths that appear in
-          # a real string literal, ignore comments and docstrings.
+          # CRM is a feature since 0.4.0, but it must stay in the module that
+          # is imported conditionally. A CRM path anywhere else would be
+          # reachable on an install that never enabled it.
           uv run python - <<'PY'
           import ast, pathlib, sys
 
+          allowed = {"hubspot/crm.py", "hubspot/client.py"}
           bad = []
           for f in sorted(pathlib.Path("src").rglob("*.py")):
+              rel = f.as_posix().split("hubspot_content_mcp/", 1)[-1]
+              if rel in allowed:
+                  continue
               tree = ast.parse(f.read_text(encoding="utf-8"))
               docstrings = set()
               for node in ast.walk(tree):
@@ -80,14 +83,13 @@ jobs:
                           and isinstance(node.value, str)
                           and id(node) not in docstrings
                           and ("crm/v3" in node.value or "crm/v4" in node.value)):
-                      bad.append(f"{f}:{node.lineno}: {node.value!r}")
+                      bad.append(f"{rel}:{node.lineno}: {node.value!r}")
 
           if bad:
               print("\n".join(bad))
-              print("::error::A CRM path appears in a string literal. "
-                    "This server must not touch CRM data.")
+              print("::error::A CRM path appears outside hubspot/crm.py.")
               sys.exit(1)
-          print("No CRM endpoint reaches a string literal.")
+          print("CRM paths are confined to the opt-in module.")
           PY
 
       - name: Publish endpoints live only in the opt-in module
@@ -102,23 +104,46 @@ jobs:
           fi
           echo "Publish calls are confined to the opt-in module."
 
-      - name: Default configuration registers no publish tools
+      - name: Default configuration cannot reach personal data
         run: |
+          # The claim the README makes: with ALLOW_CRM unset, no customer data
+          # can enter the conversation. Checked from both directions — what
+          # the model is offered, and what the socket will carry.
           uv run python - <<'PY'
           import asyncio, os, tempfile
+
           os.environ.update(
               HUBSPOT_ACCESS_TOKEN="ci", HUBSPOT_PORTAL_ID="0",
               OUTPUT_DIR=tempfile.mkdtemp(), LOG_DIR=tempfile.mkdtemp(),
           )
-          os.environ.pop("ALLOW_PUBLISH", None)
+          for key in ("ALLOW_CRM", "ALLOW_PUBLISH", "ALLOW_RAW_HTML"):
+              os.environ.pop(key, None)
+
           from hubspot_content_mcp.config import Settings
-          from hubspot_content_mcp.server import build_server
-          server = build_server(Settings.load())
+          from hubspot_content_mcp.hubspot.client import HubSpotError
+          from hubspot_content_mcp.server import build_server, data_boundary
+
+          settings = Settings.load()
+          server = build_server(settings)
           names = {t.name for t in asyncio.run(server.list_tools())}
-          server._hubspot_client.close()
-          bad = {n for n in names if "publish" in n or "delete" in n or "crm" in n}
-          assert not bad, f"default config exposed {bad}"
-          print(f"Default config: {len(names)} tools, none publish-capable.")
+          client = server._hubspot_client
+
+          leaky = {n for n in names
+                   if any(w in n.lower() for w in
+                          ("crm", "contact", "company", "deal", "ticket", "workflow"))}
+          assert not leaky, f"default config exposed {leaky}"
+
+          for path in ("/crm/v3/objects/contacts", "/crm/v4/objects/contacts/1",
+                       "/automation/v4/flows", "/marketing/v3/lists/search"):
+              try:
+                  client._build_and_check("GET", path, None, None)
+              except HubSpotError:
+                  continue
+              raise AssertionError(f"client would have called {path}")
+
+          assert data_boundary(settings)["personal_data_reachable"] is False
+          client.close()
+          print(f"Default config: {len(names)} tools, no CRM surface, no CRM path.")
           PY
 
       - name: No live credentials in the tree

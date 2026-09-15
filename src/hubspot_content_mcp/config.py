@@ -27,8 +27,15 @@ APP_DIR_NAME = ".hubspot-content-mcp"
 # is sent to is a security decision, not a configuration convenience.
 ALLOWED_API_HOSTS = frozenset({"api.hubapi.com", "api.hubapiqa.com", "localhost", "127.0.0.1"})
 
-# Content areas that may be published when publishing is enabled at all.
-PUBLISHABLE_AREAS = frozenset({"pages", "blog"})
+# Content areas that may be published. Publishing is ON by default; set
+# ALLOW_PUBLISH=none for an install that can only ever produce drafts.
+PUBLISHABLE_AREAS = frozenset({"pages", "blog", "emails"})
+
+# CRM access levels, in increasing order. Each includes the ones before it.
+#   read  — search and read objects, properties, owners, pipelines, lists
+#   write — create, update, associate, add to lists, enrol in workflows
+#   all   — archive and delete, batch imports, workflow state changes
+CRM_LEVELS: tuple[str, ...] = ("read", "write", "all")
 
 _EDIT_URL_PREFIX = {
     "landing-page": "content-editor",
@@ -36,6 +43,18 @@ _EDIT_URL_PREFIX = {
     "blog-post": "blog",
     "email": "email/edit",
     "form": "forms/edit",
+    "campaign": "campaigns",
+}
+
+# CRM record deep links follow a different shape: /contacts/{portal}/record/{objectTypeId}/{id}
+_CRM_OBJECT_TYPE_IDS = {
+    "contacts": "0-1",
+    "companies": "0-2",
+    "deals": "0-3",
+    "tickets": "0-5",
+    "products": "0-7",
+    "line_items": "0-8",
+    "quotes": "0-14",
 }
 
 _TRUTHY = {"1", "true", "yes", "on"}
@@ -98,12 +117,31 @@ def _parse_publish_scope(raw: str) -> frozenset[str]:
         raise RuntimeError(
             f"ALLOW_PUBLISH contains unknown area(s): {sorted(unknown)}. "
             f"Valid values: none, all, or a comma-separated subset of "
-            f"{sorted(PUBLISHABLE_AREAS)}. "
-            f"Marketing emails cannot be published through this server — "
-            f"HubSpot's email publish endpoint is undocumented and gated behind "
-            f"Marketing Hub Enterprise."
+            f"{sorted(PUBLISHABLE_AREAS)}."
         )
     return frozenset(areas)
+
+
+def _parse_crm_scope(raw: str) -> str:
+    """Parse ALLOW_CRM into one of '', 'read', 'write', 'all'.
+
+    Empty means the CRM module is never imported, its tools are never
+    registered, and the client refuses CRM paths outright. That is the
+    default: a content assistant has no business reading contact records
+    unless someone decided it should.
+    """
+    value = raw.strip().lower()
+    if not value or value in {"none", "off", "false", "0"}:
+        return ""
+    if value in {"true", "1", "yes", "on"}:
+        return "all"
+    if value not in CRM_LEVELS:
+        raise RuntimeError(
+            f"ALLOW_CRM={raw!r} is not a level I know. Use one of: none, "
+            f"{', '.join(CRM_LEVELS)}. Each level includes the ones before it — "
+            f"'write' can read, 'all' adds archiving, deletion and imports."
+        )
+    return value
 
 
 def _find_dotenv() -> str:
@@ -127,6 +165,16 @@ def build_edit_url(kind: str, content_id: str, portal_id: str) -> str:
     return f"https://app.hubspot.com/{prefix}/{portal_id}/{content_id}"
 
 
+def build_record_url(object_type: str, record_id: str, portal_id: str) -> str:
+    """HubSpot UI deep link for a CRM record. Empty string if unknown."""
+    if not portal_id or not record_id:
+        return ""
+    type_id = _CRM_OBJECT_TYPE_IDS.get(object_type.lower())
+    if not type_id:
+        return ""
+    return f"https://app.hubspot.com/contacts/{portal_id}/record/{type_id}/{record_id}"
+
+
 @dataclass(frozen=True)
 class Settings:
     hubspot_access_token: str
@@ -138,6 +186,7 @@ class Settings:
     log_dir: Path
     base_dir: Path
     publish_scope: frozenset[str] = field(default_factory=frozenset)
+    crm_scope: str = ""
     allow_raw_html: bool = False
 
     @property
@@ -146,6 +195,16 @@ class Settings:
 
     def may_publish(self, area: str) -> bool:
         return area in self.publish_scope
+
+    @property
+    def crm_enabled(self) -> bool:
+        return bool(self.crm_scope)
+
+    def crm_allows(self, level: str) -> bool:
+        """True when the configured CRM scope reaches at least `level`."""
+        if not self.crm_scope:
+            return False
+        return CRM_LEVELS.index(self.crm_scope) >= CRM_LEVELS.index(level)
 
     @classmethod
     def load(cls, *, require_token: bool = True) -> Settings:
@@ -161,7 +220,8 @@ class Settings:
         api_base = _validate_api_base(_env("HUBSPOT_API_BASE", default="https://api.hubapi.com"))
         timezone = _env("DEFAULT_TIMEZONE", default="UTC")
         log_level = _env("LOG_LEVEL", default="INFO").upper()
-        publish_scope = _parse_publish_scope(_env("ALLOW_PUBLISH", default="none"))
+        publish_scope = _parse_publish_scope(_env("ALLOW_PUBLISH", default="all"))
+        crm_scope = _parse_crm_scope(_env("ALLOW_CRM", default="none"))
         allow_raw_html = _flag("ALLOW_RAW_HTML")
 
         output_dir = _resolve_dir(_env("OUTPUT_DIR"), base_dir / "output")
@@ -179,6 +239,7 @@ class Settings:
             log_dir=log_dir,
             base_dir=base_dir,
             publish_scope=publish_scope,
+            crm_scope=crm_scope,
             allow_raw_html=allow_raw_html,
         )
 

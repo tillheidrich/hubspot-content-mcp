@@ -1,0 +1,17 @@
+# Continue — ~/.continue/config.yaml
+name: my-assistant
+version: 0.0.1
+schema: v1
+
+mcpServers:
+  - name: hubspot-content
+    command: uv
+    args:
+      - --directory
+      - /absolute/path/to/hubspot-content-mcp
+      - run
+      - hubspot-content-mcp
+    env:
+      HUBSPOT_MCP_ENV_FILE: /absolute/path/to/hubspot-content-mcp/.env
+      ALLOW_PUBLISH: pages,blog
+      ALLOW_CRM: none

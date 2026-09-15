@@ -1,7 +1,7 @@
 [project]
 name = "hubspot-content-mcp"
-version = "0.3.0"
-description = "A local MCP server for HubSpot content: landing pages, site pages, blog posts, forms and marketing emails. Drafts by default, publishing opt-in per area, and no CRM surface at all."
+version = "0.4.0"
+description = "A local MCP server for HubSpot: content, publishing, campaigns and — when you switch it on — CRM. Everything the API offers, gated per area, with no customer data reachable until you say so."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -20,7 +20,9 @@ keywords = [
     "llm",
     "ai-agent",
     "ai-safety",
-    "drafts-only",
+    "gdpr",
+    "crm",
+    "codex",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

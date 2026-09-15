@@ -31,14 +31,49 @@ def test_bearer_token_is_sent(client):
 @respx.mock
 def test_4xx_becomes_hubspot_error_with_message(client):
     respx.get(f"{API}/cms/v3/domains").mock(
-        return_value=httpx.Response(403, json={"message": "Missing scope: content"})
+        return_value=httpx.Response(404, json={"message": "No such thing"})
     )
 
     with pytest.raises(HubSpotError) as excinfo:
         client.get("/cms/v3/domains")
 
+    assert excinfo.value.status == 404
+    assert "No such thing" in excinfo.value.message
+
+
+@respx.mock
+def test_403_is_rewritten_into_scope_instructions(client):
+    """HubSpot's own wording says nothing useful. Ours has to."""
+    respx.get(f"{API}/cms/v3/domains").mock(
+        return_value=httpx.Response(
+            403,
+            json={
+                "category": "MISSING_SCOPES",
+                "message": "This app hasn't been granted all required scopes.",
+                "errors": [{"context": {"requiredScopes": ["content"]}}],
+            },
+        )
+    )
+
+    with pytest.raises(HubSpotError) as excinfo:
+        client.get("/cms/v3/domains")
+
+    message = excinfo.value.message
     assert excinfo.value.status == 403
-    assert "Missing scope" in excinfo.value.message
+    assert "content" in message
+    assert "Private Apps" in message, "must say where to fix it"
+
+
+@respx.mock
+def test_403_without_named_scopes_derives_one_from_the_path(client):
+    respx.get(f"{API}/cms/v3/domains").mock(
+        return_value=httpx.Response(403, json={"message": "nope"})
+    )
+
+    with pytest.raises(HubSpotError) as excinfo:
+        client.get("/cms/v3/domains")
+
+    assert "content" in excinfo.value.message
 
 
 @respx.mock

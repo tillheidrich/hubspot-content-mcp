@@ -7,6 +7,93 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-15
+
+The scope changes here. Up to 0.3.0 this server's pitch was what it could not
+do. That was the wrong shape: it left real work on the table for the sake of a
+guarantee most people only need in one place.
+
+So: everything HubSpot's API offers is now available, and the guarantee moved
+to where it actually belongs — the boundary around personal data, which you
+set before the server starts.
+
+### Added
+
+- **CRM access, off by default.** `ALLOW_CRM=read|write|all` unlocks contacts,
+  companies, deals, tickets and custom objects, with properties, associations,
+  owners, pipelines, lists, workflows and imports. Levels nest: `read`
+  registers no write tool, `write` registers nothing destructive.
+
+  With `ALLOW_CRM` unset — the default — none of it is registered and the HTTP
+  client refuses every `/crm/`, `/automation/` and `/marketing/v3/lists` path
+  before a request is built. That is the guarantee worth having: no customer
+  data is reachable, so none can enter the conversation, and none can reach
+  whoever runs the model. Three tests and a CI gate pin it from the tool list,
+  the socket and the model's instructions.
+
+- **Publishing is on by default** for pages, blog posts and marketing emails.
+  `ALLOW_PUBLISH=none` restores the old drafts-only install. Each area now
+  carries unpublish as well as publish and schedule.
+
+- **Marketing email publishing.** `/marketing/v3/emails/{id}/publish` and
+  `/unpublish` exist after all — 0.2.0's changelog said otherwise, which was
+  wrong. HubSpot gates them behind Marketing Hub Enterprise or the
+  transactional add-on; on other tiers the call returns a 403 and the error
+  explains that it is a billing boundary rather than a bug.
+
+- **Campaigns.** Create campaigns, attach pages, posts, emails and forms, read
+  the dates back. This is the closest thing HubSpot has to an editorial
+  calendar an API can see. No personal data, so no switch needed.
+
+- **Scope-aware errors.** HubSpot answers a key that is missing a scope with
+  one opaque sentence whatever you asked for. The client now names the exact
+  scope — from HubSpot's body when it supplies one, from the endpoint when it
+  does not — and says where to add it. Your key's scopes are the outer limit
+  of what any configuration can reach, and the errors now treat that as a
+  feature rather than a mystery.
+
+- **Config snippets for Codex, Cursor, VS Code and Continue** in `examples/`.
+  Verified by driving the stdio handshake at protocol versions 2025-06-18,
+  2025-03-26 and 2024-11-05, with a client declaring no capabilities. Nothing
+  in the server was Claude-specific; the docs just implied it was.
+
+### Fixed
+
+- **The handshake reported the MCP SDK's version as the server's.** `FastMCP`
+  takes no version argument and the server underneath falls back to the SDK's
+  package version, so every client showed users `1.30.0` instead of the real
+  one. Set on the low-level server, and pinned by a test — an SDK refactor
+  would otherwise put it back silently.
+
+- **`unpublish_page` was registered under `ALLOW_PUBLISH=blog`** rather than
+  `pages`, for the few minutes it existed before the tests caught it.
+
+### Changed
+
+- **The safety model is about consequence, not capability.** What survives
+  from 0.3.0 is the shape: anything a configuration did not enable is absent
+  from the tool list rather than present-and-refusing, and the client will not
+  carry a request to a surface that was left off. On top of that, every tool
+  that reaches the public or changes a record requires `user_confirmed=True`.
+  A test walks the most permissive configuration and fails if any tool is
+  missing that gate, so one added later cannot quietly skip it.
+
+- **Permanent CRM deletion is deliberately absent.** `archive_crm_object`
+  moves a record to the recycle bin, recoverable for 90 days. HubSpot's GDPR
+  erase endpoint is not wired up: it is a legal act with an audit trail, and a
+  tool call in a chat window is the wrong shape for it.
+
+- **CI gates rewritten** for the new invariants. The CRM gate now parses the
+  AST instead of grepping, so the comment in `client.py` that documents the
+  path-traversal attack no longer fails the build while a real endpoint would.
+  Verified in both directions.
+
+- **README repositioned.** The table of tool counts per configuration is now
+  parsed by a test and compared against the running server, because counts in
+  documentation rot silently.
+
+---
+
 ## [0.3.0] — 2026-09-14
 
 ### Security — found by a dedicated pre-release audit
@@ -165,7 +252,7 @@ First public release.
 - `subscription_type_id` and `template_path` on marketing email creation.
 - Fallback between HubSpot's two documented spellings of the language-variant
   endpoint.
-- 169 tests, including a safety suite that asserts no publish, delete, archive
+- 181 tests, including a safety suite that asserts no publish, delete, archive
   or CRM tool exists and that writes hit draft endpoints.
 - CI on Python 3.11, 3.12 and 3.13.
 

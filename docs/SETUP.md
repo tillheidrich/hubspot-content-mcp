@@ -271,7 +271,32 @@ curl -s -H "Authorization: Bearer $HUBSPOT_ACCESS_TOKEN" \
 
 **The assistant says it cannot publish**
 
-Correct, and deliberate. Take the edit URL it gives you and publish in HubSpot.
+Then `ALLOW_PUBLISH` is set to `none` on this install — publishing is on by
+default, so something set it. Check the `env` block in your client's config.
+Take the edit URL it gives you and publish in HubSpot meanwhile.
+
+**The assistant says it cannot see contacts**
+
+That is the default and it is doing its job. `ALLOW_CRM` is unset, so the CRM
+tools are not registered and the client refuses CRM paths outright. Set
+`ALLOW_CRM=read` (or `write`, or `all`) in your client's config *and* give the
+HubSpot key the matching scopes. Both are needed; the key is the one HubSpot
+enforces.
+
+Remember what you are turning on: every record the assistant reads is copied
+into the conversation, which means it reaches whoever runs the model. If you
+only needed a page written, leave it off.
+
+**HubSpot returns 403 and the message names a scope**
+
+That is your key, not a bug. Open the private app or service key in HubSpot,
+add the named scope, save — then paste the new token into `.env` and restart
+the client. Re-scoping issues a new token; the old string stops working.
+
+**403 when publishing a marketing email**
+
+`/marketing/v3/emails/{id}/publish` needs Marketing Hub Enterprise or the
+transactional email add-on. No scope fixes that. Send it from the HubSpot UI.
 
 ---
 

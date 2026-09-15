@@ -43,19 +43,163 @@ log = structlog.get_logger("hubspot_content_mcp.hubspot.client")
 
 IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
 
-# Every path this server is allowed to touch. Anything else is refused before
-# the request leaves the process, so a future f-string bug cannot reopen the
-# traversal hole.
-ALLOWED_PATH_PREFIXES: tuple[str, ...] = (
-    "/cms/v3/",
-    "/marketing/v3/emails",
-    "/marketing/v3/forms",
-    "/content/api/v2/templates",
-    "/content/api/v2/pages",
-    "/content/api/v2/blog-posts",
-)
+# Which paths this client may touch, grouped by the surface that unlocks
+# them. The client is constructed with the surfaces the configuration turned
+# on; everything else is refused before the request leaves the process, so a
+# future f-string bug cannot reopen the traversal hole.
+#
+# This is the second of two lines. The first is the token itself: a key
+# without CRM scopes cannot read a contact no matter what this file says,
+# and HubSpot enforces that, not us. The surfaces below matter when the key
+# is broader than the job — a shared service key, typically.
+PATH_SURFACES: dict[str, tuple[str, ...]] = {
+    "content": (
+        "/cms/v3/",
+        "/marketing/v3/emails",
+        "/marketing/v3/forms",
+        "/content/api/v2/templates",
+        "/content/api/v2/pages",
+        "/content/api/v2/blog-posts",
+    ),
+    "campaigns": ("/marketing/v3/campaigns",),
+    "crm": (
+        "/crm/v3/",
+        "/crm/v4/",
+        "/crm-objects/v1/",
+        "/automation/v4/",
+        "/marketing/v3/lists",
+        "/marketing/v3/marketing-events",
+    ),
+}
+
+# The surfaces a client gets when nobody says otherwise. Content only: no
+# contact, company, deal or ticket path is reachable from here.
+DEFAULT_SURFACES: tuple[str, ...] = ("content", "campaigns")
+
+# Personal data lives behind these surfaces. Used for the boundary report the
+# server prints at startup, so "no customer data can reach the model" is a
+# statement someone can check rather than take on trust.
+PERSONAL_DATA_SURFACES = frozenset({"crm"})
+
+
+def prefixes_for(surfaces: object) -> tuple[str, ...]:
+    """Flatten a set of surface names into the path prefixes they allow."""
+    names = sorted(set(surfaces))
+    unknown = [n for n in names if n not in PATH_SURFACES]
+    if unknown:
+        raise ValueError(f"Unknown API surface(s): {unknown}. Known: {sorted(PATH_SURFACES)}")
+    return tuple(prefix for name in names for prefix in PATH_SURFACES[name])
+
 
 MAX_LOGGED_PAYLOAD = 2000
+
+# Which HubSpot scope a path family needs, used when HubSpot returns a 403
+# without naming one. Not exhaustive — it only has to cover what this server
+# calls.
+_SCOPE_BY_PREFIX: tuple[tuple[str, str], ...] = (
+    ("/cms/v3/blogs", "content"),
+    ("/cms/v3/pages", "content"),
+    ("/cms/v3/", "content"),
+    ("/content/api/v2/", "content"),
+    ("/marketing/v3/forms", "forms"),
+    ("/marketing/v3/emails", "marketing-email"),
+    ("/marketing/v3/campaigns", "marketing.campaigns.read (and .write to edit)"),
+    ("/marketing/v3/lists", "crm.lists.read (and .write to edit)"),
+    ("/marketing/v3/marketing-events", "marketing.events.read"),
+    ("/crm/v3/objects/contacts", "crm.objects.contacts.read (and .write to edit)"),
+    ("/crm/v3/objects/companies", "crm.objects.companies.read (and .write to edit)"),
+    ("/crm/v3/objects/deals", "crm.objects.deals.read (and .write to edit)"),
+    ("/crm/v3/objects/tickets", "tickets"),
+    ("/crm/v3/properties", "crm.schemas.contacts.read, or the matching object's schema scope"),
+    ("/crm/v3/owners", "crm.objects.owners.read"),
+    ("/crm/v3/pipelines", "crm.pipelines.deals.read"),
+    ("/crm/v4/objects", "the read scope of both objects being associated"),
+    ("/crm/v4/associations", "the read scope of both objects being associated"),
+    ("/automation/v4/", "automation"),
+)
+
+
+def _scope_for_path(path: str) -> str:
+    for prefix, scope in _SCOPE_BY_PREFIX:
+        if path.startswith(prefix):
+            return scope
+    return ""
+
+
+def _required_scopes(payload: Any) -> list[str]:
+    """Pull the scope names out of a HubSpot MISSING_SCOPES body.
+
+    HubSpot has used several shapes for this over the years, so read all of
+    them and deduplicate rather than betting on one.
+    """
+    found: list[str] = []
+    if not isinstance(payload, dict):
+        return found
+
+    def collect(container: Any) -> None:
+        if not isinstance(container, dict):
+            return
+        for key in ("requiredScopes", "requiredGranularScopes", "requiredAllScopes"):
+            value = container.get(key)
+            if isinstance(value, str):
+                found.append(value)
+            elif isinstance(value, list):
+                found.extend(str(v) for v in value)
+
+    collect(payload)
+    collect(payload.get("context"))
+    for error in payload.get("errors") or []:
+        if isinstance(error, dict):
+            collect(error)
+            collect(error.get("context"))
+
+    seen: set[str] = set()
+    return [s for s in found if not (s in seen or seen.add(s))]
+
+
+def scope_error_message(payload: Any, path: str) -> str:
+    """Turn HubSpot's generic 403 into something the user can act on.
+
+    HubSpot answers a key that is missing a scope with the same opaque
+    sentence whatever you asked for. The useful part — which scope — is
+    sometimes in the body and sometimes nowhere, so derive it from the path
+    when it is absent.
+    """
+    if path.endswith(("/publish", "/unpublish")) and path.startswith("/marketing/v3/emails"):
+        return (
+            "HubSpot refused to publish this marketing email. The /publish and "
+            "/unpublish endpoints need Marketing Hub Enterprise or the "
+            "transactional email add-on — on any other tier they answer 403 no "
+            "matter which scopes the key carries. This is a billing boundary, "
+            "not a bug and not something the key can fix.\n\n"
+            "The email itself is fine: open it in HubSpot and send it from "
+            "there. Everything else in this server works on your tier."
+        )
+
+    scopes = _required_scopes(payload)
+    if scopes:
+        wanted = ", ".join(scopes)
+        lead = f"Your HubSpot key is missing the scope(s): {wanted}."
+    else:
+        guess = _scope_for_path(path)
+        lead = (
+            f"HubSpot refused this call as out of scope for your key. "
+            f"Based on the endpoint ({path}), the scope you need is likely: {guess}."
+            if guess
+            else f"HubSpot refused this call as out of scope for your key ({path})."
+        )
+    return (
+        f"{lead}\n\n"
+        "This is your key deciding what the assistant may touch, which is the "
+        "boundary working as intended. To widen it: HubSpot → Settings → "
+        "Integrations → Private Apps (or Service keys) → your app → Scopes → "
+        "add the scope → save. A rotated or re-scoped key is a new token: paste "
+        "it into your .env and restart the MCP client.\n\n"
+        "If this scope covers personal data and you did not intend to give the "
+        "assistant access to it, the right answer is to leave the key as it is "
+        "and tell the user the request is out of scope."
+    )
+
 
 # HubSpot IDs are numeric; form IDs are UUIDs. Nothing legitimate needs a
 # slash, a dot, or a query string.
@@ -111,12 +255,15 @@ class HubSpotClient:
         api_base: str = "https://api.hubapi.com",
         timeout: float = 30.0,
         max_attempts: int = 3,
+        surfaces: object = DEFAULT_SURFACES,
     ) -> None:
         if not access_token:
             raise RuntimeError(
                 "No HubSpot access token. Set HUBSPOT_ACCESS_TOKEN in your .env file."
             )
         self._max_attempts = max(1, max_attempts)
+        self.surfaces: frozenset[str] = frozenset(surfaces)
+        self._allowed_prefixes = prefixes_for(self.surfaces)
         self._api_host = httpx.URL(api_base).host
         self._client = httpx.Client(
             base_url=api_base,
@@ -218,11 +365,13 @@ class HubSpotClient:
     ) -> httpx.Request:
         request = self._client.build_request(method, path, params=params, json=json_body)
         url = request.url
-        if url.host != self._api_host or not url.path.startswith(ALLOWED_PATH_PREFIXES):
+        if url.host != self._api_host or not url.path.startswith(self._allowed_prefixes):
             raise HubSpotError(
                 400,
                 f"Refusing to call {url.host}{url.path} — that is outside this server's "
-                f"API surface. This usually means an ID contained path characters.",
+                f"API surface. Enabled surfaces: {sorted(self.surfaces)}. "
+                f"Either an ID contained path characters, or this call needs a surface "
+                f"that the configuration has not enabled (CRM paths need ALLOW_CRM).",
             )
         return request
 
@@ -247,7 +396,10 @@ class HubSpotClient:
                     duration_ms=duration_ms,
                     response=_truncate(payload),
                 )
-                message = self._summarize_error(payload, resp.status_code)
+                if resp.status_code == 403:
+                    message = scope_error_message(payload, request.url.path)
+                else:
+                    message = self._summarize_error(payload, resp.status_code)
                 if resp.status_code == 429 or 500 <= resp.status_code < 600:
                     # Raised so the retry predicate can see it; still a
                     # HubSpotError once attempts are exhausted.

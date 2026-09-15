@@ -147,7 +147,36 @@ def register(mcp: FastMCP, context: dict[str, Any]) -> None:
             )
             return out
 
-    # --- blog ---------------------------------------------------------------
+        # --- blog ---------------------------------------------------------------
+        @mcp.tool()
+        def unpublish_page(
+            page_id: str,
+            page_type: PageType,
+            user_confirmed: bool = False,
+        ) -> dict[str, Any]:
+            """Take a live page down. It returns to draft; nothing is deleted.
+
+            The URL stops serving immediately. Anything linking to it — an ad,
+            a newsletter that already went out, a QR code on a printed flyer —
+            starts leading nowhere. Say that to the user before asking, and
+            check whether a redirect is wanted instead.
+
+            Uses HubSpot's legacy publish-action endpoint, the only documented
+            route. Verify the result in the UI.
+            """
+            _require_confirmation(user_confirmed, "take this page offline")
+            hub_publishing.unpublish_content(client, "page", page_id)
+            log.warning("publishing.page_unpublished", page_id=page_id, page_type=page_type)
+            kind = "landing-page" if page_type == "landing" else "site-page"
+            return {
+                "unpublished": True,
+                "page_id": page_id,
+                "edit_url": settings.edit_url(kind=kind, content_id=page_id),
+                "note": "Back to draft. The public URL no longer serves it.",
+            }
+
+        unpublish_page.__doc__ = (unpublish_page.__doc__ or "") + f"\n\n{CONFIRM_HINT}"
+
     if settings.may_publish("blog"):
 
         @mcp.tool()
@@ -243,7 +272,74 @@ def register(mcp: FastMCP, context: dict[str, Any]) -> None:
             out["scheduled_for"] = publish_at
             return out
 
-    # --- cancelling, available whenever any publishing is on ----------------
+        # --- cancelling, available whenever any publishing is on ----------------
+    if settings.may_publish("blog"):
+
+        @mcp.tool()
+        def unpublish_blog_post(post_id: str, user_confirmed: bool = False) -> dict[str, Any]:
+            """Take a live blog post down. It returns to draft; nothing is deleted.
+
+            Search engines have already indexed it and feed readers have
+            already fetched it. Unpublishing removes the page, not the copies.
+            """
+            _require_confirmation(user_confirmed, "take this blog post offline")
+            hub_publishing.unpublish_content(client, "post", post_id)
+            log.warning("publishing.post_unpublished", post_id=post_id)
+            return {
+                "unpublished": True,
+                "post_id": post_id,
+                "edit_url": settings.edit_url(kind="blog-post", content_id=post_id),
+                "note": "Back to draft. The public URL no longer serves it.",
+            }
+
+        unpublish_blog_post.__doc__ = (unpublish_blog_post.__doc__ or "") + f"\n\n{CONFIRM_HINT}"
+
+    # --- marketing emails ---------------------------------------------------
+    if settings.may_publish("emails"):
+
+        @mcp.tool()
+        def publish_marketing_email(email_id: str, user_confirmed: bool = False) -> dict[str, Any]:
+            """Send a marketing email, or schedule it per its own settings.
+
+            This is the most consequential tool in this server. It puts mail in
+            other people's inboxes, it cannot be recalled, and the recipient
+            list was decided inside HubSpot rather than here — so read the
+            email first with get_marketing_email and tell the user what it is,
+            who it goes to, and when, before you ask.
+
+            Requires Marketing Hub Enterprise or the transactional email
+            add-on. On other tiers HubSpot answers 403 and the error explains
+            it; that is a billing boundary, not something to work around.
+            """
+            _require_confirmation(user_confirmed, "send this marketing email")
+            result = hub_publishing.publish_marketing_email(client, email_id)
+            log.warning("publishing.email_published", email_id=email_id)
+            return {
+                "published": True,
+                "email_id": email_id,
+                "edit_url": settings.edit_url(kind="email", content_id=email_id),
+                "hubspot_response": result,
+                "note": "Delivered mail cannot be recalled.",
+            }
+
+        publish_marketing_email.__doc__ = (
+            publish_marketing_email.__doc__ or ""
+        ) + f"\n\n{CONFIRM_HINT}"
+
+        @mcp.tool()
+        def unpublish_marketing_email(
+            email_id: str, user_confirmed: bool = False
+        ) -> dict[str, Any]:
+            """Withdraw a marketing email that has not gone out yet.
+
+            Only helps while the send is still pending. Anything already
+            delivered stays delivered.
+            """
+            _require_confirmation(user_confirmed, "withdraw this marketing email")
+            result = hub_publishing.unpublish_marketing_email(client, email_id)
+            log.warning("publishing.email_unpublished", email_id=email_id)
+            return {"unpublished": True, "email_id": email_id, "hubspot_response": result}
+
     @mcp.tool()
     def cancel_scheduled_publish(
         content_id: str,
