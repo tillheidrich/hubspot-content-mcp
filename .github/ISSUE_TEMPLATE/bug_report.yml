@@ -1,0 +1,77 @@
+name: Bug report
+description: Something did not work as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. If this is a security issue — a way to publish,
+        delete, reach CRM data, or leak a token — please use
+        [private reporting](../../security/advisories/new) instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you ask the assistant to do, and what did it do instead?
+      placeholder: |
+        I asked Claude to "duplicate the March webinar page".
+        It called duplicate_page and returned an error about the slug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: input
+    id: tool
+    attributes:
+      label: Which tool was called
+      placeholder: duplicate_page
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant lines from logs/server.log
+      description: |
+        One JSON event per line. The token is redacted, but skim it before pasting.
+      render: json
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `uv run hubspot-content-mcp --version`
+      placeholder: hubspot-content-mcp 0.2.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client
+      options:
+        - Claude Desktop
+        - Claude Code
+        - Cursor
+        - Cline
+        - MCP Inspector
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12.4"
+    validations:
+      required: true

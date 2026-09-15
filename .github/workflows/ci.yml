@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Check formatting
+        run: uv run ruff format --check src tests
+
+      - name: Run tests
+        run: uv run pytest -v
+
+  safety:
+    name: Safety guarantees
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: No publish, delete or CRM tools may exist
+        run: uv run pytest tests/test_safety.py -v
+
+      - name: No CRM endpoints referenced anywhere in the source
+        run: |
+          if grep -rn --include="*.py" "crm/v3\|crm/v4" src/; then
+            echo "::error::Found a CRM endpoint reference. This server must not touch CRM data."
+            exit 1
+          fi
+          echo "No CRM endpoints found."
+
+      - name: Publish endpoints live only in the opt-in module
+        run: |
+          # Publishing is a feature now, but it must stay confined to the
+          # module that is registered conditionally.
+          if grep -rlnE --include="*.py" \
+             'client\.(post|patch|put)\([^)]*/(publish|push-live|schedule)' src/ \
+             | grep -v 'hubspot/publishing.py'; then
+            echo "::error::A publish call appears outside hubspot/publishing.py."
+            exit 1
+          fi
+          echo "Publish calls are confined to the opt-in module."
+
+      - name: Default configuration registers no publish tools
+        run: |
+          uv run python - <<'PY'
+          import asyncio, os, tempfile
+          os.environ.update(
+              HUBSPOT_ACCESS_TOKEN="ci", HUBSPOT_PORTAL_ID="0",
+              OUTPUT_DIR=tempfile.mkdtemp(), LOG_DIR=tempfile.mkdtemp(),
+          )
+          os.environ.pop("ALLOW_PUBLISH", None)
+          from hubspot_content_mcp.config import Settings
+          from hubspot_content_mcp.server import build_server
+          server = build_server(Settings.load())
+          names = {t.name for t in asyncio.run(server.list_tools())}
+          server._hubspot_client.close()
+          bad = {n for n in names if "publish" in n or "delete" in n or "crm" in n}
+          assert not bad, f"default config exposed {bad}"
+          print(f"Default config: {len(names)} tools, none publish-capable.")
+          PY
+
+      - name: No live credentials in the tree
+        run: |
+          # Real HubSpot keys look like pat-<region><digit>-<uuid>. GitHub's
+          # own push protection blocks that shape on sight and does not care
+          # whether the value was ever a credential, so nothing in the tree
+          # may spell one out — test fixtures included. tests/test_security.py
+          # therefore assembles its two fixtures from a prefix variable.
+          hits=$(grep -rnE 'pat-(na|eu|ap)[0-9]-[0-9a-f]{8}-[0-9a-f]{4}-' . \
+                   --include="*.py" --include="*.md" --include="*.toml" \
+                   --include="*.json" --include="*.yml" --include="*.example" \
+                 || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::Something that looks like a live HubSpot key is committed."
+            exit 1
+          fi
+          if git ls-files --error-unmatch .env 2>/dev/null; then
+            echo "::error::.env is tracked. It must never be committed."
+            exit 1
+          fi
+          echo "No credentials found in the tree."
+
+      - name: Every content write targets the draft buffer
+        run: |
+          # Pages, blog posts and emails must PATCH {id}/draft, never {id}.
+          # Forms are exempt: the v3 Forms API has no draft concept.
+          bad=$(grep -rnE --include="*.py" 'client\.patch\(' \
+                  src/hubspot_content_mcp/hubspot/pages.py \
+                  src/hubspot_content_mcp/hubspot/blog.py \
+                  src/hubspot_content_mcp/hubspot/emails.py \
+                | grep -v '/draft' || true)
+          if [ -n "$bad" ]; then
+            echo "$bad"
+            echo "::error::A write targets the live object instead of {id}/draft."
+            exit 1
+          fi
+          echo "All content writes target /draft."
+
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build
+        run: uv build
+
+      - name: Verify the wheel imports cleanly
+        run: |
+          python -m venv /tmp/verify
+          /tmp/verify/bin/pip install --quiet dist/*.whl
+          /tmp/verify/bin/python -c "import hubspot_content_mcp; print(hubspot_content_mcp.__version__)"
+          /tmp/verify/bin/hubspot-content-mcp --version
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

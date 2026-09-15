@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/tillheidrich/hubspot-content-mcp/security/advisories/new
+    about: Report privately — do not open a public issue.
+  - name: HubSpot API question
+    url: https://developers.hubspot.com/docs/api/overview
+    about: For questions about HubSpot's API itself rather than this server.
+  - name: Model Context Protocol
+    url: https://modelcontextprotocol.io/
+    about: Docs for the protocol this server implements.

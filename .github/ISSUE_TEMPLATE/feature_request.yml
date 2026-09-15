@@ -1,0 +1,53 @@
+name: Feature request
+description: Suggest a new tool or capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you write this up, two things are permanently out of scope:
+
+        - **Publishing, scheduling, deleting or archiving.** The point of this
+          server is that an agent cannot take content live. HubSpot's
+          [official MCP server](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server)
+          does publish, and does it well.
+        - **CRM data.** Contacts, companies, deals, tickets, lists,
+          conversations. Also covered by the official server.
+
+        Everything else is fair game.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This does not publish, schedule, delete or archive anything
+          required: true
+        - label: This does not touch CRM data
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: Describe the task, not the solution. What do you say to the assistant?
+      placeholder: |
+        I want to ask "swap the hero image on all four regional variants of
+        this page" without doing it four times in the UI.
+    validations:
+      required: true
+
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you handle it today
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed tool, if you have one in mind
+      description: Name, arguments, what it returns.
+    validations:
+      required: false
