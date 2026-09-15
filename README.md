@@ -245,6 +245,65 @@ Forms have no draft state in HubSpot: a form is live and submittable as soon as 
 
 ---
 
+## Writing page content without breaking the editor
+
+This is the one thing that will bite you, and it bites quietly. Read it before the first page edit.
+
+### What goes wrong
+
+A HubSpot page is not a document. It is a grid of modules that a marketer rearranges by dragging, and that grid lives in `layoutSections`. Ask an assistant for "a three-column comparison section" and it will do the obvious thing: write HTML that produces three columns — nested `div`s, a CSS grid, inline styles, a few utility classes — and drop the whole thing into one rich-text module.
+
+On the live site it looks right. In the page editor it is one opaque block:
+
+- Nobody can move, duplicate or delete the individual pieces. The module is the smallest unit the editor knows, and now the module is the entire section.
+- The theme's spacing and type scale do not apply, because the markup brought its own. The result reads as *almost* on-brand, which is worse than obviously off.
+- HubSpot's editor sanitises rich-text fields on save. The next colleague who fixes a typo in that block can silently lose the classes and inline styles holding the layout together.
+- Nothing in there can be translated per module, swapped in an A/B test, or reused on another page.
+
+The sharper version of the same mistake is hand-writing a `layoutSections` tree — inventing rows, cells or module types the template does not have. That usually does not render as a broken page. It renders fine and then refuses to open in the drag-and-drop editor at all, which is how it tends to be discovered: by a marketer, on a Friday.
+
+**The rule: layout belongs to modules and rows. Markup carries content, nothing else.**
+
+### What to do instead
+
+In order of preference:
+
+**1. Clone something that already has the right structure.** `duplicate_page` copies the grid a human built, and then the assistant only fills text into modules that already exist. This covers most recurring work — webinar pages, campaign variants, event landing pages — and it is the reason `duplicate_page` exists.
+
+**2. Edit in place, and send the tree back whole.** Fetch with `include_content=True`, change values inside the structure you got back, and PATCH the entire `layoutSections`. HubSpot's API accepts nothing smaller, and a tree you assembled yourself will not survive the editor.
+
+**3. Need a section that does not exist yet? Build the empty shell by hand, once.** Drop the modules into place in HubSpot, save it as a template or as a saved section, and from then on the assistant fills it. Ten minutes of clicking buys you a structure the assistant can safely reuse forever.
+
+**4. Keep rich-text markup boring.** Headings, paragraphs, lists, links, bold and italic. That is the whole vocabulary. No `div`s, no grid, no `style=`, no class names.
+
+### Prompts
+
+Works — the structure already exists, the assistant only supplies content:
+
+```
+Duplicate the Q2 webinar landing page, set the date module to March 12,
+replace the speaker bio text, and attach the DACH registration form.
+```
+
+Breaks the editor — the assistant has to invent structure to satisfy it:
+
+```
+Build me a landing page with a hero, a three-column feature grid
+and a testimonial band.
+```
+
+If you catch yourself writing the second kind, that is the signal to build the shell by hand first. An assistant that says *"this template has no three-column module; build one and I will fill it"* is doing the right thing, not being unhelpful.
+
+### Before you publish
+
+Open the draft in the **page editor**, not the preview. The preview renders almost anything; the editor is where the damage shows. A draft that looks fine in preview and will not open for editing is the exact failure this section is about.
+
+### What the server does about it
+
+Both the server instructions and the `update_page_draft` tool description carry these rules, so the assistant reads them at the start of the session and again on every write. That shifts the odds; it does not remove the risk. The server cannot tell well-formed module content from a layout blob — to the API both are a string. The editor check above is the backstop.
+
+---
+
 ## Publishing
 
 Off by default. `ALLOW_PUBLISH` decides whether the publish tools are
@@ -357,6 +416,7 @@ The two-layer split is deliberate: `hubspot/` is reusable from a script or a CLI
 - **`list_templates` uses a legacy endpoint.** HubSpot never shipped a v3 template listing. `/content/api/v2/templates` works today and may not forever. Pass `template_path` manually if it fails.
 - **No asset uploads.** You can reference images already in HubSpot by URL, but not upload new ones.
 - **Module-level updates resend the whole `layoutSections`.** HubSpot's API takes nothing smaller.
+- **The server cannot tell good markup from a layout blob.** To the API both are a string. See [Writing page content without breaking the editor](#writing-page-content-without-breaking-the-editor).
 - **No social publishing.** HubSpot retired the public social API. The XLSX route is the supported alternative.
 
 ---

@@ -34,6 +34,24 @@ first, every time.
 - Forms have no draft state in HubSpot: a form you create is live and \
 submittable immediately, though not embedded anywhere until someone places it \
 on a page. Say so when you create one.
+
+Page structure — read this before you write any page content:
+- A HubSpot page is a grid of modules that a marketer edits by dragging. \
+That grid lives in layoutSections. You are not the only editor of this page.
+- Do not invent layout. Never hand-write a layoutSections tree, never add \
+rows, cells or widgets that are not already there, and never invent a module \
+type. Read the page first, change values inside the structure you got back, \
+and send it back whole.
+- Do not put layout into HTML. Inside a rich-text module, write headings, \
+paragraphs, lists, links and emphasis — nothing else. No grids, no column \
+divs, no inline styles, no custom classes. Markup like that renders on the \
+live site but collapses into one uneditable block in the editor, loses the \
+theme's spacing and type, and can be stripped the next time a human saves.
+- Need a section that does not exist yet? Say so and stop. A human builds \
+the empty section once in HubSpot; then you fill it. Cloning a page that \
+already has the right structure is almost always the better move.
+- Tell the user to open the draft in the page editor, not just the preview. \
+The preview renders almost anything; the editor is where breakage shows.
 """
 
 DRAFTS_ONLY_NOTE = """

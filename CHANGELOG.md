@@ -58,6 +58,24 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Guidance against breaking the drag-and-drop editor.** The most common way
+  to damage a HubSpot page through an API is not a wrong endpoint — it is
+  well-formed content in the wrong shape. An assistant asked for a
+  three-column section writes layout HTML into a single rich-text module, or
+  assembles a `layoutSections` tree by hand. Both render correctly on the live
+  site; both leave a page a marketer can no longer edit, and the second one
+  will not open in the editor at all.
+
+  The rules now sit in the server instructions and in the `update_page_draft`
+  description, so the assistant reads them when the session starts and again
+  on every write. The README has a section on the failure mode, the four
+  patterns that avoid it, and prompts that do and do not work. Two tests pin
+  the wording in both places — verified to fail when either is removed.
+
+  The server still cannot tell well-formed module content from a layout blob;
+  to the API both are a string. Checking the draft in the page editor rather
+  than the preview remains the backstop.
+
 - **Opt-in publishing.** `ALLOW_PUBLISH=none|pages|blog|all`. When an area is
   not enabled its tools are never registered, so they are absent from the tool
   list rather than present-and-refusing. Every publish requires
@@ -147,7 +165,7 @@ First public release.
 - `subscription_type_id` and `template_path` on marketing email creation.
 - Fallback between HubSpot's two documented spellings of the language-variant
   endpoint.
-- 167 tests, including a safety suite that asserts no publish, delete, archive
+- 169 tests, including a safety suite that asserts no publish, delete, archive
   or CRM tool exists and that writes hit draft endpoints.
 - CI on Python 3.11, 3.12 and 3.13.
 

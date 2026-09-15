@@ -245,6 +245,19 @@ def register(mcp: FastMCP, context: dict[str, Any]) -> None:
 
         Any field that could publish or schedule the page is refused and
         reported back in `rejected_fields` rather than silently dropped.
+
+        Writing layoutSections or widgets: fetch the page with
+        include_content=True first, edit values inside the tree you got
+        back, and send the whole tree. HubSpot accepts nothing smaller, and
+        a tree you assembled yourself will not open in the drag-and-drop
+        editor even when it renders correctly on the live site.
+
+        Inside a rich-text module, keep to headings, paragraphs, lists,
+        links and emphasis. Layout HTML — grid divs, columns, inline
+        styles, custom classes — turns the module into one block a marketer
+        cannot edit, drops the theme's spacing and typography, and may be
+        stripped the next time someone saves in HubSpot. Layout belongs to
+        modules and rows, not to markup.
         """
         if "slug" in fields:
             fields = {**fields, "slug": validate_slug(str(fields["slug"]))}

@@ -203,3 +203,30 @@ def test_every_tool_has_a_description(settings):
     for tool in tools:
         assert tool.description, f"{tool.name} has no description for the model to read"
         assert len(tool.description) > 40, f"{tool.name} description is too thin"
+
+
+# --- page structure guidance reaches the model -------------------------------
+#
+# The layout rules only work if the assistant actually reads them. They live
+# in two places for that reason, and both are easy to drop during a refactor
+# without anything failing. These tests fail instead.
+
+
+def _flat(text: str) -> str:
+    """Collapse the line wrapping so a rule can be matched as one sentence."""
+    return " ".join(text.split())
+
+
+def test_server_instructions_carry_the_layout_rules(settings):
+    text = _flat(build_server(settings).instructions)
+    assert "Do not invent layout" in text
+    assert "Never hand-write a layoutSections tree" in text
+    assert "not just the preview" in text
+
+
+def test_update_page_draft_description_carries_the_markup_rules(settings):
+    server = build_server(settings)
+    tools = {t.name: _flat(t.description or "") for t in asyncio.run(server.list_tools())}
+    description = tools["update_page_draft"]
+    assert "send the whole tree" in description
+    assert "Layout belongs to modules and rows, not to markup" in description
