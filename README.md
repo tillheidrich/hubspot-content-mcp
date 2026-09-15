@@ -116,8 +116,9 @@ In HubSpot, go to **Settings → Integrations → Service keys** (or **Private a
 - `content` — pages, blog posts, marketing emails
 - `forms` and `external_integrations.forms.access` — forms
 - `files` — referencing images already hosted in HubSpot
+- `marketing.campaigns.read` — campaigns, plus `.write` to create and attach
 
-Do **not** grant any `crm.*` scope. Nothing here uses them, and leaving them off means a leaked token cannot touch customer data.
+Grant a `crm.*` scope only if you intend to set `ALLOW_CRM`. Leaving them off means a leaked token cannot touch customer data whatever this server is configured to do — the key is the limit HubSpot enforces, and it is the one that holds if everything else fails.
 
 Then fill in `.env`:
 

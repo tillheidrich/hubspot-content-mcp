@@ -83,10 +83,12 @@ Click **Create service key**, name it something like
 | `forms` | Forms |
 | `external_integrations.forms.access` | Forms via the v3 API |
 | `files` | Referencing images already hosted in HubSpot |
+| `marketing.campaigns.read` | Campaigns (add `.write` to create and attach) |
 
-Leave everything else off. In particular **do not add any `crm.*` scope** —
-no tool in this server uses them, and omitting them means a leaked key cannot
-reach customer data.
+Leave everything else off for now. In particular **add a `crm.*` scope only if
+you intend to set `ALLOW_CRM`** — omitting them means a leaked key cannot reach
+customer data no matter how this server is configured. You can add them later;
+a re-scoped key is a new token, so you paste it into `.env` again.
 
 Click create. **The key is shown in full exactly once.** Copy it now; afterwards
 it is masked.
@@ -197,7 +199,8 @@ tray icon and Quit on Windows. Closing the window is not enough; the config is
 only read at startup.
 
 Reopen it, start a new chat, and look for the tools icon near the message box.
-`hubspot-mcp-server` should be listed with 29 tools.
+`hubspot-mcp-server` should be listed with 45 tools — or 36 if you set
+`ALLOW_PUBLISH=none`.
 
 Try it:
 

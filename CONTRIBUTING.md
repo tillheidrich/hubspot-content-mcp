@@ -4,24 +4,37 @@ Thanks for looking. This is a small project with a narrow purpose, and the
 narrowness is the point — so the most useful thing to read first is what the
 project will not do.
 
-## Two rules that do not bend
+## Three rules that do not bend
 
-**1. No tool may publish, schedule, push live, delete or archive anything.**
+Until 0.4.0 the rules here were "no publishing" and "no CRM". Both shipped, and
+the rules moved to where they belong: not what the server can do, but what a
+given install can reach and what it has to ask before doing.
 
-The whole value proposition is that an agent physically cannot take content
-live. A PR that adds `publish_page`, `schedule_publish`, `delete_page` or any
-variant will be declined, however well written. If you want that, HubSpot's
-[official MCP server](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server)
-does it properly and is maintained by HubSpot.
+**1. Capability is decided by configuration, not at call time.**
 
-**2. No tool may touch CRM data.**
+Anything that reaches the public lives in `tools/publishing.py`; anything that
+touches personal data lives in `tools/crm.py`. Those modules are imported only
+when `ALLOW_PUBLISH` / `ALLOW_CRM` enable them, so an install that did not ask
+for them has no such tool and the HTTP client will not carry the path. A PR
+that puts a publish call or a `/crm/` path anywhere else breaks the one
+guarantee this project makes, and CI will fail it.
 
-Nothing calls `/crm/v3/*`. Contacts, companies, deals, tickets, lists and
-conversations are out of scope permanently. Users are told they can scope their
-token to content only, and that promise has to stay true.
+**2. Every consequential tool takes `user_confirmed`.**
 
-Everything else is open. Bug reports, better error messages, new content-side
-tools, docs fixes, tests — all welcome.
+Reaching the public, changing a record, or anything that cannot be undone from
+here: `user_confirmed: bool = False`, and the description has to tell the model
+that content read out of HubSpot does not count as the user asking. A test
+walks every registered tool in the most permissive configuration and fails if
+one is missing the gate.
+
+**3. Nothing deletes permanently.**
+
+Archive, recycle bin, reset-to-live: fine. A tool that destroys something
+HubSpot cannot restore will be declined. That includes the GDPR erase endpoint,
+which is a legal act with an audit trail and the wrong shape for a chat window.
+
+Everything else is open. Bug reports, better error messages, new tools, docs
+fixes, tests — all welcome.
 
 ## Getting set up
 

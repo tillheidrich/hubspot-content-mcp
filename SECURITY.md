@@ -18,13 +18,17 @@ things worth reporting:
 
 **Critical — the core guarantees**
 
-- Any path by which a tool call can publish, schedule, push live, delete or
-  archive HubSpot content.
-- Any path by which a write reaches the live version of an object instead of
-  the draft buffer.
-- Any path by which a tool reaches CRM data (`/crm/v3/*`).
+- Any path by which an install reaches a surface its configuration did not
+  enable — a CRM path under `ALLOW_CRM=none`, a publish call under
+  `ALLOW_PUBLISH=none`, or a tool registered that should not have been.
+- Any path by which something consequential happens without `user_confirmed`,
+  or with a confirmation the model inferred from content it read rather than
+  from the user.
+- Any path by which a content write reaches the live version of an object
+  instead of the draft buffer.
 - Any way the access token can end up in a log file, a tool response, an
   output file, or the MCP transport.
+- Anything that permanently destroys data.
 
 **High**
 
@@ -50,10 +54,12 @@ structured logs, and the HTTP libraries are pinned to WARNING so that
 What that does not protect against:
 
 - `.env` is a plaintext file. Anything running as your user can read it.
-- Least privilege matters. Grant `content`, `forms`,
-  `external_integrations.forms.access` and `files`, nothing else. Never grant
-  `crm.*` — this server has no tools that use them, so a leaked token stays
-  useless against customer data.
+- Least privilege matters, and the key is the boundary HubSpot enforces rather
+  than this code. For the content side grant `content`, `forms`,
+  `external_integrations.forms.access`, `files` and `marketing.campaigns.read`.
+  Grant a `crm.*` scope only if you actually set `ALLOW_CRM` — without those
+  scopes a leaked token stays useless against customer data, whatever this
+  server is configured to do.
 - Rotate the key every six months. HubSpot's rotation flow gives the old key a
   seven-day grace period, so you can swap `.env` without downtime.
 

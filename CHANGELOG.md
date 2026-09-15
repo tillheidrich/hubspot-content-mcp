@@ -27,10 +27,31 @@ A rename, and one stale claim removed.
 
 ### Fixed
 
+- **`.env.example` set `ALLOW_PUBLISH` twice.** 0.4.0 appended a new block
+  without removing the 0.3.0 one. The file said "Publishing (off by default)"
+  and set `none` on line 45, then `all` on line 97 — and the last assignment
+  wins, so anyone who copied the example got publishing fully on while reading
+  that it was off. One block now, saying what it does.
+
+- **The 0.3.0 guarantees survived in the places people read before
+  contributing.** `CONTRIBUTING.md` still said no tool may publish or touch
+  CRM; `SECURITY.md` listed both as Critical vulnerabilities, so a shipped
+  feature would have been reported as a hole; the feature-request template had
+  two *required* checkboxes that no honest request about the current scope
+  could tick. All three now describe the configuration model: where a
+  consequential tool has to live, and what it has to ask first.
+
 - **The package docstring still promised there was no CRM surface.** Written
   for 0.3.0, left untouched through 0.4.0, and wrong from the moment `ALLOW_CRM`
   shipped. It now describes the boundary as configuration rather than as a
   property of the package.
+
+- Smaller drift from the same rewrite: `docs/ARCHITECTURE.md` described layer 1
+  as "there is no publish or CRM tool" two sections before describing
+  conditional registration correctly; `docs/SETUP.md` claimed 29 tools;
+  `README.md` and `docs/SETUP.md` told you never to grant a `crm.*` scope in
+  one place and to grant it in another; and no scope list mentioned
+  `marketing.campaigns.read`, which the connection test has probed since 0.4.0.
 
 ## [0.4.0] — 2026-09-15
 

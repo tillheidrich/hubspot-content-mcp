@@ -5,25 +5,21 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before you write this up, two things are permanently out of scope:
+        Publishing and CRM access both exist — gated by `ALLOW_PUBLISH` and
+        `ALLOW_CRM`. So the question is not whether a tool is allowed to be
+        consequential, but where it lives and what it asks first.
 
-        - **Publishing, scheduling, deleting or archiving.** The point of this
-          server is that an agent cannot take content live. HubSpot's
-          [official MCP server](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server)
-          does publish, and does it well.
-        - **CRM data.** Contacts, companies, deals, tickets, lists,
-          conversations. Also covered by the official server.
-
-        Everything else is fair game.
+        Permanently out of scope: anything that destroys data HubSpot cannot
+        restore, including the GDPR erase endpoint.
 
   - type: checkboxes
     id: scope
     attributes:
       label: Scope check
       options:
-        - label: This does not publish, schedule, delete or archive anything
+        - label: If this reaches the public or touches a record, it belongs in the publishing or CRM module and takes user_confirmed
           required: true
-        - label: This does not touch CRM data
+        - label: This does not permanently destroy anything
           required: true
 
   - type: textarea

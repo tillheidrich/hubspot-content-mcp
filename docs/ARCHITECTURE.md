@@ -69,13 +69,14 @@ and configuration only exists at runtime.
 
 ## The safety model
 
-Three layers, deliberately redundant, because the caller is a language model
-that can be argued with.
+Layers, deliberately redundant, because the caller is a language model that
+can be argued with.
 
-**Layer 1 — absent tools.** There is no publish, schedule, delete or archive
-tool, and nothing calls `/crm/v3/*`. MCP rejects unknown tool names at the
-protocol level, so no prompt produces one. This is the layer that actually
-matters; the rest is defence in depth.
+**Layer 1 — absent tools.** Capability is decided once, at registration. A
+group the configuration did not enable — CRM without `ALLOW_CRM`, publishing
+for an area not in `ALLOW_PUBLISH` — has no tool in the list, and MCP rejects
+unknown tool names at the protocol level, so no prompt produces one. This is
+the layer that actually matters; the rest is defence in depth.
 
 **Layer 2 — draft routing.** Writes go to `PATCH {id}/draft`, never
 `PATCH {id}`. HubSpot's bare PATCH edits the *live* version of a published
