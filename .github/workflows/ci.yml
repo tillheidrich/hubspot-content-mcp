@@ -20,10 +20,10 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
 
@@ -46,10 +46,10 @@ jobs:
     name: Safety guarantees
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -59,11 +59,36 @@ jobs:
 
       - name: No CRM endpoints referenced anywhere in the source
         run: |
-          if grep -rn --include="*.py" "crm/v3\|crm/v4" src/; then
-            echo "::error::Found a CRM endpoint reference. This server must not touch CRM data."
-            exit 1
-          fi
-          echo "No CRM endpoints found."
+          # A plain grep cannot tell an endpoint from prose, and it fired on
+          # the comment in client.py that documents the path-traversal fix by
+          # quoting the attack. Parse instead: flag CRM paths that appear in
+          # a real string literal, ignore comments and docstrings.
+          uv run python - <<'PY'
+          import ast, pathlib, sys
+
+          bad = []
+          for f in sorted(pathlib.Path("src").rglob("*.py")):
+              tree = ast.parse(f.read_text(encoding="utf-8"))
+              docstrings = set()
+              for node in ast.walk(tree):
+                  if isinstance(node, (ast.Module, ast.ClassDef,
+                                       ast.FunctionDef, ast.AsyncFunctionDef)):
+                      if ast.get_docstring(node) is not None:
+                          docstrings.add(id(node.body[0].value))
+              for node in ast.walk(tree):
+                  if (isinstance(node, ast.Constant)
+                          and isinstance(node.value, str)
+                          and id(node) not in docstrings
+                          and ("crm/v3" in node.value or "crm/v4" in node.value)):
+                      bad.append(f"{f}:{node.lineno}: {node.value!r}")
+
+          if bad:
+              print("\n".join(bad))
+              print("::error::A CRM path appears in a string literal. "
+                    "This server must not touch CRM data.")
+              sys.exit(1)
+          print("No CRM endpoint reaches a string literal.")
+          PY
 
       - name: Publish endpoints live only in the opt-in module
         run: |
@@ -138,10 +163,10 @@ jobs:
     name: Build package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
 
       - name: Build
         run: uv build
@@ -153,7 +178,7 @@ jobs:
           /tmp/verify/bin/python -c "import hubspot_content_mcp; print(hubspot_content_mcp.__version__)"
           /tmp/verify/bin/hubspot-content-mcp --version
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
