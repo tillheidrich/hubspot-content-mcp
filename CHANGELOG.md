@@ -7,6 +7,27 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-09-15
+
+### Fixed
+
+- **`list_blog_posts(state="PUBLISHED")` returned nothing, for every portal.**
+  Blog posts and pages do not share a state vocabulary: a page is filtered with
+  `PUBLISHED_OR_SCHEDULED`, a post carries a plain `PUBLISHED`. The blog module
+  imported the page table, so the filter matched no post that has ever existed
+  and the tool answered "no posts" for a blog full of them.
+
+  That is the failure mode this project keeps running into and keeps writing
+  down: not an error, an answer. The assistant reports "there are no published
+  posts", the user believes it, and nothing anywhere says otherwise. Found by
+  calling the tool against a real portal after the 0.5.0 release — no unit test
+  would have caught it, because the mock had been written from the same wrong
+  assumption as the code.
+
+  A/B variant states are deliberately not in the new table: HubSpot answers an
+  unknown enum value with a 400, and the post-side variant names could not be
+  confirmed. Plain states are what the API returns for posts.
+
 ## [0.5.0] — 2026-09-15
 
 A rename, and one stale claim removed.
@@ -315,7 +336,8 @@ First public release.
 - Connection test reports which scope a failure implies and treats the legacy
   template endpoint as optional.
 
-[Unreleased]: https://github.com/tillheidrich/hubspot-mcp/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/tillheidrich/hubspot-mcp/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/tillheidrich/hubspot-mcp/releases/tag/v0.5.1
 [0.5.0]: https://github.com/tillheidrich/hubspot-mcp/releases/tag/v0.5.0
 [0.4.0]: https://github.com/tillheidrich/hubspot-mcp/releases/tag/v0.4.0
 [0.3.0]: https://github.com/tillheidrich/hubspot-mcp/releases/tag/v0.3.0

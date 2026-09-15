@@ -4,12 +4,14 @@ import httpx
 import pytest
 import respx
 
+from hubspot_mcp.hubspot import blog as hub_blog
 from hubspot_mcp.hubspot import pages as hub_pages
 from hubspot_mcp.models.common import page_summary
 from hubspot_mcp.tools.pages import validate_slug
 
 API = "https://api.hubapi.com"
 LP = f"{API}/cms/v3/pages/landing-pages"
+POSTS = f"{API}/cms/v3/blogs/posts"
 
 
 # --- state / language filters use the documented __in syntax ----------------
@@ -187,3 +189,41 @@ def test_valid_slugs(value, expected):
 def test_invalid_slugs_explain_themselves(value):
     with pytest.raises(ValueError, match="slug"):
         validate_slug(value)
+
+
+# --- blog posts and pages do not share a state vocabulary -------------------
+
+
+@respx.mock
+def test_blog_state_filter_uses_the_post_vocabulary(client):
+    """A published post carries a plain PUBLISHED.
+
+    The page table maps PUBLISHED to PUBLISHED_OR_SCHEDULED, which matches no
+    post at all, so the tool answered "no posts" for a blog full of them — a
+    wrong answer wearing the clothes of a right one.
+    """
+    captured: dict = {}
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        captured.update(dict(request.url.params))
+        return httpx.Response(200, json={"results": []})
+
+    respx.get(POSTS).mock(side_effect=capture)
+    hub_blog.list_blog_posts(client, state="PUBLISHED")
+
+    assert captured["state__in"] == "PUBLISHED"
+    assert "PUBLISHED_OR_SCHEDULED" not in captured["state__in"]
+
+
+@respx.mock
+def test_page_state_filter_still_uses_the_page_vocabulary(client):
+    captured: dict = {}
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        captured.update(dict(request.url.params))
+        return httpx.Response(200, json={"results": []})
+
+    respx.get(LP).mock(side_effect=capture)
+    hub_pages.list_pages(client, "landing", state="PUBLISHED")
+
+    assert "PUBLISHED_OR_SCHEDULED" in captured["state__in"]

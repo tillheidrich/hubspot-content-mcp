@@ -50,7 +50,7 @@ body:
     attributes:
       label: Version
       description: Output of `uv run hubspot-mcp-server --version`
-      placeholder: hubspot-mcp-server 0.5.0
+      placeholder: hubspot-mcp-server 0.5.1
     validations:
       required: true
 

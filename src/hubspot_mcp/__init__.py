@@ -7,6 +7,6 @@ gates publishing per area. Anything a configuration did not enable is absent
 from the tool list, and the HTTP client refuses the path.
 """
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 __all__ = ["__version__"]

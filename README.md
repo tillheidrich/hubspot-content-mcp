@@ -131,7 +131,7 @@ DEFAULT_TIMEZONE=Europe/Berlin
 `--test-connection` should print a row per API area:
 
 ```
-hubspot-mcp-server 0.5.0 — connection test
+hubspot-mcp-server 0.5.1 — connection test
   API base:   https://api.hubapi.com
   Portal ID:  12345678
 

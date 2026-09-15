@@ -1,6 +1,6 @@
 [project]
 name = "hubspot-mcp-server"
-version = "0.5.0"
+version = "0.5.1"
 description = "A local MCP server for HubSpot: content, publishing, campaigns and — when you switch it on — CRM. Everything the API offers, gated per area, with no customer data reachable until you say so."
 readme = "README.md"
 requires-python = ">=3.11"

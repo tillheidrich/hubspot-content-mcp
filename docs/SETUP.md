@@ -130,7 +130,7 @@ uv run hubspot-mcp-server --test-connection
 ```
 
 ```
-hubspot-mcp-server 0.5.0 — connection test
+hubspot-mcp-server 0.5.1 — connection test
   API base:   https://api.hubapi.com
   Portal ID:  12345678
   Output dir: /Users/you/hubspot-mcp/output

@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from .client import HubSpotClient, path_segment
-from .pages import FORBIDDEN_FIELDS, MAX_SEARCH_PAGES, STATE_FILTERS
+from .pages import FORBIDDEN_FIELDS, MAX_SEARCH_PAGES
 
 ALLOWED_POST_FIELDS = frozenset(
     {
@@ -56,6 +56,21 @@ def _title_of(row: dict[str, Any]) -> str:
     return (row.get("name") or row.get("htmlTitle") or "").lower()
 
 
+# Blog posts and pages do not share a state vocabulary. A page is filtered with
+# PUBLISHED_OR_SCHEDULED; a post carries a plain PUBLISHED. Reusing the page
+# table here returned an empty list for every published post — a wrong answer
+# that looks like a correct one, which is the worst kind.
+#
+# A/B variants are deliberately absent: HubSpot rejects an unknown enum value
+# with a 400, and there was no portal to confirm the post-side variant names
+# against. Plain states are what the API returns for posts.
+BLOG_STATE_FILTERS: dict[str, str] = {
+    "DRAFT": "DRAFT",
+    "PUBLISHED": "PUBLISHED",
+    "SCHEDULED": "SCHEDULED",
+}
+
+
 def list_blog_posts(
     client: HubSpotClient,
     *,
@@ -73,7 +88,7 @@ def list_blog_posts(
 
     if state and state.upper() != "ANY":
         try:
-            params["state__in"] = STATE_FILTERS[state.upper()]
+            params["state__in"] = BLOG_STATE_FILTERS[state.upper()]
         except KeyError:
             raise ValueError(
                 f"state must be one of ANY, DRAFT, PUBLISHED, SCHEDULED — got {state!r}"
