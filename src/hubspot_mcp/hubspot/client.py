@@ -39,7 +39,7 @@ from tenacity import (
 
 from .. import __version__
 
-log = structlog.get_logger("hubspot_content_mcp.hubspot.client")
+log = structlog.get_logger("hubspot_mcp.hubspot.client")
 
 IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
 
@@ -274,7 +274,7 @@ class HubSpotClient:
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json",
-                "User-Agent": f"hubspot-content-mcp/{__version__}",
+                "User-Agent": f"hubspot-mcp-server/{__version__}",
             },
         )
 

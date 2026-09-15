@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from hubspot_content_mcp.config import Settings
-from hubspot_content_mcp.hubspot.client import HubSpotClient
+from hubspot_mcp.config import Settings
+from hubspot_mcp.hubspot.client import HubSpotClient
 
 API_BASE = "https://api.hubapi.com"
 

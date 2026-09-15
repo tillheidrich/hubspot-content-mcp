@@ -49,8 +49,8 @@ body:
     id: version
     attributes:
       label: Version
-      description: Output of `uv run hubspot-content-mcp --version`
-      placeholder: hubspot-content-mcp 0.2.0
+      description: Output of `uv run hubspot-mcp-server --version`
+      placeholder: hubspot-mcp-server 0.5.0
     validations:
       required: true
 

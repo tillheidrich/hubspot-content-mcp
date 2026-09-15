@@ -68,9 +68,9 @@ def test_the_handshake_reports_our_version_not_the_sdks():
         OUTPUT_DIR=tempfile.mkdtemp(),
         LOG_DIR=tempfile.mkdtemp(),
     )
-    from hubspot_content_mcp import __version__
-    from hubspot_content_mcp.config import Settings
-    from hubspot_content_mcp.server import build_server
+    from hubspot_mcp import __version__
+    from hubspot_mcp.config import Settings
+    from hubspot_mcp.server import build_server
 
     server = build_server(Settings.load())
     try:
@@ -79,4 +79,4 @@ def test_the_handshake_reports_our_version_not_the_sdks():
         server._hubspot_client.close()
 
     assert options.server_version == __version__
-    assert options.server_name == "hubspot-content"
+    assert options.server_name == "hubspot-mcp-server"

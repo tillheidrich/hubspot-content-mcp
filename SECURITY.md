@@ -4,7 +4,7 @@
 
 Please do not open a public issue.
 
-Use GitHub's [private vulnerability reporting](https://github.com/tillheidrich/hubspot-content-mcp/security/advisories/new)
+Use GitHub's [private vulnerability reporting](https://github.com/tillheidrich/hubspot-mcp-server/security/advisories/new)
 on this repository. You should get a response within a few days.
 
 This is a small side project maintained in spare time, so please do not expect

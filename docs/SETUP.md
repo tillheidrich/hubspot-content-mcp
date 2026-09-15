@@ -43,8 +43,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## 2. Get the code
 
 ```bash
-git clone https://github.com/tillheidrich/hubspot-content-mcp.git
-cd hubspot-content-mcp
+git clone https://github.com/tillheidrich/hubspot-mcp-server.git
+cd hubspot-mcp-server
 uv sync
 ```
 
@@ -75,7 +75,7 @@ or, equivalently, **Development → Keys → Service keys** in the main nav.
 > looking at a dialog asking for a redirect URL, you are in the wrong place.
 
 Click **Create service key**, name it something like
-`hubspot-content-mcp (laptop)`, and add these scopes:
+`hubspot-mcp-server (laptop)`, and add these scopes:
 
 | Scope | Needed for |
 | --- | --- |
@@ -124,15 +124,15 @@ particular, do not edit `.env.example`, which is the committed template.
 ## 5. Test the connection
 
 ```bash
-uv run hubspot-content-mcp --test-connection
+uv run hubspot-mcp-server --test-connection
 ```
 
 ```
-hubspot-content-mcp 0.2.0 — connection test
+hubspot-mcp-server 0.5.0 — connection test
   API base:   https://api.hubapi.com
   Portal ID:  12345678
-  Output dir: /Users/you/hubspot-content-mcp/output
-  Log dir:    /Users/you/hubspot-content-mcp/logs
+  Output dir: /Users/you/hubspot-mcp-server/output
+  Log dir:    /Users/you/hubspot-mcp-server/logs
 
   [ OK ] Landing pages: 1 item(s) readable
   [ OK ] Site pages: 1 item(s) readable
@@ -175,29 +175,29 @@ path:
 ```json
 {
   "mcpServers": {
-    "hubspot-content": {
+    "hubspot-mcp-server": {
       "command": "uv",
       "args": [
-        "--directory", "/absolute/path/to/hubspot-content-mcp",
-        "run", "hubspot-content-mcp"
+        "--directory", "/absolute/path/to/hubspot-mcp-server",
+        "run", "hubspot-mcp-server"
       ]
     }
   }
 }
 ```
 
-If it already exists, add the `"hubspot-content"` block inside the existing
+If it already exists, add the `"hubspot-mcp-server"` block inside the existing
 `mcpServers` object, and mind the commas.
 
 On Windows, JSON treats `\` as an escape character. Use forward slashes —
-`C:/Users/you/hubspot-content-mcp` — or double the backslashes.
+`C:/Users/you/hubspot-mcp-server` — or double the backslashes.
 
 Now quit Claude Desktop **completely**: `Cmd+Q` on macOS, or right-click the
 tray icon and Quit on Windows. Closing the window is not enough; the config is
 only read at startup.
 
 Reopen it, start a new chat, and look for the tools icon near the message box.
-`hubspot-content` should be listed with 29 tools.
+`hubspot-mcp-server` should be listed with 29 tools.
 
 Try it:
 
@@ -206,7 +206,7 @@ Try it:
 ### Claude Code
 
 ```bash
-claude mcp add hubspot-content -- uv --directory /absolute/path/to/hubspot-content-mcp run hubspot-content-mcp
+claude mcp add hubspot-mcp-server -- uv --directory /absolute/path/to/hubspot-mcp-server run hubspot-mcp-server
 ```
 
 ### Cursor
@@ -218,7 +218,7 @@ claude mcp add hubspot-content -- uv --directory /absolute/path/to/hubspot-conte
 For poking at tools directly without an assistant in the way:
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory . run hubspot-content-mcp
+npx @modelcontextprotocol/inspector uv --directory . run hubspot-mcp-server
 ```
 
 ---
@@ -235,8 +235,8 @@ python -m json.tool < ~/Library/Application\ Support/Claude/claude_desktop_confi
 
 Then check the client's own MCP log:
 
-- macOS `~/Library/Logs/Claude/mcp-server-hubspot-content.log`
-- Windows `%APPDATA%\Claude\logs\mcp-server-hubspot-content.log`
+- macOS `~/Library/Logs/Claude/mcp-server-hubspot-mcp-server.log`
+- Windows `%APPDATA%\Claude\logs\mcp-server-hubspot-mcp-server.log`
 
 **`command not found: uv` in that log**
 
@@ -303,7 +303,7 @@ transactional email add-on. No scope fixes that. Send it from the HubSpot UI.
 ## Updating
 
 ```bash
-cd hubspot-content-mcp
+cd hubspot-mcp-server
 git pull
 uv sync
 ```
@@ -319,5 +319,5 @@ still works before the old one dies.
 
 ## Uninstalling
 
-Remove the `"hubspot-content"` block from your client config, restart it,
+Remove the `"hubspot-mcp-server"` block from your client config, restart it,
 delete the directory, and revoke the service key in HubSpot.

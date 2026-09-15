@@ -4,7 +4,7 @@ import httpx
 import pytest
 import respx
 
-from hubspot_content_mcp.hubspot.client import HubSpotClient, HubSpotError
+from hubspot_mcp.hubspot.client import HubSpotClient, HubSpotError
 
 API = "https://api.hubapi.com"
 

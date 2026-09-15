@@ -4,9 +4,9 @@ import httpx
 import pytest
 import respx
 
-from hubspot_content_mcp.hubspot import pages as hub_pages
-from hubspot_content_mcp.models.common import page_summary
-from hubspot_content_mcp.tools.pages import validate_slug
+from hubspot_mcp.hubspot import pages as hub_pages
+from hubspot_mcp.models.common import page_summary
+from hubspot_mcp.tools.pages import validate_slug
 
 API = "https://api.hubapi.com"
 LP = f"{API}/cms/v3/pages/landing-pages"

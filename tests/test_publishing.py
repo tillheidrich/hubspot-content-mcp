@@ -14,9 +14,9 @@ import httpx
 import pytest
 import respx
 
-from hubspot_content_mcp.config import Settings
-from hubspot_content_mcp.hubspot import publishing as hub_publishing
-from hubspot_content_mcp.server import build_server
+from hubspot_mcp.config import Settings
+from hubspot_mcp.hubspot import publishing as hub_publishing
+from hubspot_mcp.server import build_server
 
 API = "https://api.hubapi.com"
 LP = f"{API}/cms/v3/pages/landing-pages"
@@ -71,7 +71,7 @@ def test_explicit_off_values_disable_publishing(tmp_path, monkeypatch, value):
 
 
 def test_instructions_say_so_when_publishing_is_off(tmp_path, monkeypatch):
-    from hubspot_content_mcp.server import build_instructions
+    from hubspot_mcp.server import build_instructions
 
     text = build_instructions(_settings(tmp_path, monkeypatch, "none"))
     assert "Publishing is OFF" in text
@@ -112,7 +112,7 @@ def test_emails_are_publishable_on_their_own(tmp_path, monkeypatch):
 
 
 def test_enabled_instructions_name_the_areas(tmp_path, monkeypatch):
-    from hubspot_content_mcp.server import build_instructions
+    from hubspot_mcp.server import build_instructions
 
     text = build_instructions(_settings(tmp_path, monkeypatch, "pages"))
     assert "Publishing is ON" in text
@@ -217,7 +217,7 @@ def test_first_publish_uses_publish_immediately_then_schedule(client):
 def test_now_iso_is_a_valid_utc_timestamp():
     from datetime import datetime
 
-    from hubspot_content_mcp.tools.publishing import _now_iso
+    from hubspot_mcp.tools.publishing import _now_iso
 
     stamp = _now_iso()
     assert stamp.endswith("Z")

@@ -124,7 +124,7 @@ required values raise immediately with a message naming the file to fix.
 
 Path resolution is more careful than it looks. `.env` is found with
 `find_dotenv(usecwd=True)`, and its directory becomes the base for `output/`
-and `logs/`. Without a `.env`, the base is `~/.hubspot-content-mcp/`. The
+and `logs/`. Without a `.env`, the base is `~/.hubspot-mcp-server/`. The
 earlier version derived paths from `__file__`, which put `output/` inside
 site-packages once the package was pip-installed.
 

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from hubspot_content_mcp.config import Settings, build_edit_url
-from hubspot_content_mcp.tools.forms import build_field_group
+from hubspot_mcp.config import Settings, build_edit_url
+from hubspot_mcp.tools.forms import build_field_group
 
 # --- form field groups match the v3 schema ---------------------------------
 

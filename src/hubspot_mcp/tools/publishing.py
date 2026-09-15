@@ -23,7 +23,7 @@ from ..hubspot import pages as hub_pages
 from ..hubspot import publishing as hub_publishing
 from ..models.common import blog_post_summary, page_summary
 
-log = structlog.get_logger("hubspot_content_mcp.publishing")
+log = structlog.get_logger("hubspot_mcp.publishing")
 
 PageType = Literal["landing", "site"]
 

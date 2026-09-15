@@ -16,7 +16,7 @@ from mcp.server.fastmcp import FastMCP
 from ..config import build_edit_url
 from ..hubspot import campaigns as hub_campaigns
 
-log = structlog.get_logger("hubspot_content_mcp.campaigns")
+log = structlog.get_logger("hubspot_mcp.campaigns")
 
 
 def _summary(campaign: dict[str, Any], portal: str) -> dict[str, Any]:

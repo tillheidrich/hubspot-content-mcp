@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from openpyxl import load_workbook
 
-from hubspot_content_mcp.social.xlsx_writer import (
+from hubspot_mcp.social.xlsx_writer import (
     HEADERS,
     MAX_POSTS,
     SocialXLSXError,

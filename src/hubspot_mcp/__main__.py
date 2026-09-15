@@ -16,7 +16,7 @@ from .logging_setup import setup_logging
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="hubspot-content-mcp",
+        prog="hubspot-mcp-server",
         description=(
             "Local MCP server for HubSpot. Content, publishing and campaigns by "
             "default; CRM only when ALLOW_CRM says so."
@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"hubspot-content-mcp {__version__}",
+        version=f"hubspot-mcp-server {__version__}",
     )
     return parser
 
@@ -137,7 +137,7 @@ def run_connection_test(settings: Settings) -> int:
         ]
 
     out = sys.stderr
-    print(f"hubspot-content-mcp {__version__} — connection test", file=out)
+    print(f"hubspot-mcp-server {__version__} — connection test", file=out)
     print(f"  API base:   {settings.hubspot_api_base}", file=out)
     print(
         f"  Portal ID:  {settings.hubspot_portal_id or '(not set — edit URLs disabled)'}", file=out

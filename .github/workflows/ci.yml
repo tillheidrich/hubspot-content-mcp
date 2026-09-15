@@ -68,7 +68,7 @@ jobs:
           allowed = {"hubspot/crm.py", "hubspot/client.py"}
           bad = []
           for f in sorted(pathlib.Path("src").rglob("*.py")):
-              rel = f.as_posix().split("hubspot_content_mcp/", 1)[-1]
+              rel = f.as_posix().split("hubspot_mcp/", 1)[-1]
               if rel in allowed:
                   continue
               tree = ast.parse(f.read_text(encoding="utf-8"))
@@ -119,9 +119,9 @@ jobs:
           for key in ("ALLOW_CRM", "ALLOW_PUBLISH", "ALLOW_RAW_HTML"):
               os.environ.pop(key, None)
 
-          from hubspot_content_mcp.config import Settings
-          from hubspot_content_mcp.hubspot.client import HubSpotError
-          from hubspot_content_mcp.server import build_server, data_boundary
+          from hubspot_mcp.config import Settings
+          from hubspot_mcp.hubspot.client import HubSpotError
+          from hubspot_mcp.server import build_server, data_boundary
 
           settings = Settings.load()
           server = build_server(settings)
@@ -173,9 +173,9 @@ jobs:
           # Pages, blog posts and emails must PATCH {id}/draft, never {id}.
           # Forms are exempt: the v3 Forms API has no draft concept.
           bad=$(grep -rnE --include="*.py" 'client\.patch\(' \
-                  src/hubspot_content_mcp/hubspot/pages.py \
-                  src/hubspot_content_mcp/hubspot/blog.py \
-                  src/hubspot_content_mcp/hubspot/emails.py \
+                  src/hubspot_mcp/hubspot/pages.py \
+                  src/hubspot_mcp/hubspot/blog.py \
+                  src/hubspot_mcp/hubspot/emails.py \
                 | grep -v '/draft' || true)
           if [ -n "$bad" ]; then
             echo "$bad"
@@ -200,8 +200,8 @@ jobs:
         run: |
           python -m venv /tmp/verify
           /tmp/verify/bin/pip install --quiet dist/*.whl
-          /tmp/verify/bin/python -c "import hubspot_content_mcp; print(hubspot_content_mcp.__version__)"
-          /tmp/verify/bin/hubspot-content-mcp --version
+          /tmp/verify/bin/python -c "import hubspot_mcp; print(hubspot_mcp.__version__)"
+          /tmp/verify/bin/hubspot-mcp-server --version
 
       - uses: actions/upload-artifact@v7
         with:

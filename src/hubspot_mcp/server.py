@@ -11,7 +11,7 @@ from . import __version__
 from .config import Settings
 from .hubspot.client import DEFAULT_SURFACES, HubSpotClient
 
-log = structlog.get_logger("hubspot_content_mcp.server")
+log = structlog.get_logger("hubspot_mcp.server")
 
 BASE_INSTRUCTIONS = """\
 HubSpot tools. Landing pages, site pages, blog posts, forms, marketing \
@@ -168,7 +168,7 @@ def build_server(settings: Settings, *, client: HubSpotClient | None = None) -> 
       settings: loaded configuration.
       client: optional pre-built HubSpot client, mainly for tests.
     """
-    mcp = FastMCP(name="hubspot-content", instructions=build_instructions(settings))
+    mcp = FastMCP(name="hubspot-mcp-server", instructions=build_instructions(settings))
 
     # FastMCP takes no version argument, and the low-level server falls back to
     # the MCP SDK's own package version when none is set — so every client was

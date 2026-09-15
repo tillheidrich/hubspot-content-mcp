@@ -89,7 +89,7 @@ def setup_logging(log_dir: Path, level: str = "INFO") -> structlog.stdlib.BoundL
 
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setLevel(logging.ERROR)
-    stderr_handler.setFormatter(RedactingFormatter("[hubspot-content-mcp] %(message)s"))
+    stderr_handler.setFormatter(RedactingFormatter("[hubspot-mcp-server] %(message)s"))
 
     root = logging.getLogger()
     for existing in list(root.handlers):
@@ -102,7 +102,7 @@ def setup_logging(log_dir: Path, level: str = "INFO") -> structlog.stdlib.BoundL
     # logging a request header.
     requested = getattr(logging, level.upper(), logging.INFO)
     root.setLevel(max(requested, logging.INFO))
-    logging.getLogger("hubspot_content_mcp").setLevel(requested)
+    logging.getLogger("hubspot_mcp").setLevel(requested)
 
     for name in _NOISY_LIBRARIES:
         logging.getLogger(name).setLevel(logging.WARNING)
@@ -120,4 +120,4 @@ def setup_logging(log_dir: Path, level: str = "INFO") -> structlog.stdlib.BoundL
         cache_logger_on_first_use=True,
     )
 
-    return structlog.get_logger("hubspot_content_mcp")
+    return structlog.get_logger("hubspot_mcp")

@@ -22,12 +22,12 @@ import httpx
 import pytest
 import respx
 
-from hubspot_content_mcp.config import Settings
-from hubspot_content_mcp.hubspot import blog as hub_blog
-from hubspot_content_mcp.hubspot import emails as hub_emails
-from hubspot_content_mcp.hubspot import pages as hub_pages
-from hubspot_content_mcp.hubspot.client import HubSpotError
-from hubspot_content_mcp.server import build_server
+from hubspot_mcp.config import Settings
+from hubspot_mcp.hubspot import blog as hub_blog
+from hubspot_mcp.hubspot import emails as hub_emails
+from hubspot_mcp.hubspot import pages as hub_pages
+from hubspot_mcp.hubspot.client import HubSpotError
+from hubspot_mcp.server import build_server
 
 API = "https://api.hubapi.com"
 
@@ -199,7 +199,7 @@ def test_content_only_client_refuses_crm_paths(settings):
 
 def test_content_only_instructions_state_the_boundary(settings):
     """Third: the model can tell the user why, instead of improvising."""
-    from hubspot_content_mcp.server import build_instructions, data_boundary
+    from hubspot_mcp.server import build_instructions, data_boundary
 
     text = build_instructions(settings)
     assert "CRM access is OFF" in text

@@ -26,7 +26,7 @@ from ..config import build_record_url
 from ..hubspot import crm as hub_crm
 from ..models.common import wrap_untrusted
 
-log = structlog.get_logger("hubspot_content_mcp.crm")
+log = structlog.get_logger("hubspot_mcp.crm")
 
 CONFIRM_HINT = (
     "Set this to True only after the user has, in this conversation, "

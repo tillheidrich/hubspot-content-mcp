@@ -1,9 +1,9 @@
-# HubSpot Content MCP
+# HubSpot MCP Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-2025--06--18-orange.svg)](https://modelcontextprotocol.io/)
-[![Tests](https://github.com/tillheidrich/hubspot-content-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/tillheidrich/hubspot-content-mcp/actions/workflows/ci.yml)
+[![Tests](https://github.com/tillheidrich/hubspot-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/tillheidrich/hubspot-mcp-server/actions/workflows/ci.yml)
 
 **If you want an AI assistant actually working inside HubSpot, this is the server to point it at.**
 
@@ -82,28 +82,28 @@ So the honest comparison is HubSpot's own server, not the community ones.
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/tillheidrich/hubspot-content-mcp.git
-cd hubspot-content-mcp
+git clone https://github.com/tillheidrich/hubspot-mcp-server.git
+cd hubspot-mcp-server
 uv sync
 
 cp .env.example .env
 $EDITOR .env          # paste your HubSpot token
 
-uv run hubspot-content-mcp --test-connection
+uv run hubspot-mcp-server --test-connection
 ```
 
 <details>
 <summary><strong>Windows (PowerShell)</strong></summary>
 
 ```powershell
-git clone https://github.com/tillheidrich/hubspot-content-mcp.git
-cd hubspot-content-mcp
+git clone https://github.com/tillheidrich/hubspot-mcp-server.git
+cd hubspot-mcp-server
 uv sync
 
 copy .env.example .env
 notepad .env
 
-uv run hubspot-content-mcp --test-connection
+uv run hubspot-mcp-server --test-connection
 ```
 
 If `uv` is missing: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
@@ -130,7 +130,7 @@ DEFAULT_TIMEZONE=Europe/Berlin
 `--test-connection` should print a row per API area:
 
 ```
-hubspot-content-mcp 0.2.0 — connection test
+hubspot-mcp-server 0.5.0 — connection test
   API base:   https://api.hubapi.com
   Portal ID:  12345678
 
@@ -155,11 +155,11 @@ All required checks passed. Ready to register with an MCP client.
 ```json
 {
   "mcpServers": {
-    "hubspot-content": {
+    "hubspot-mcp-server": {
       "command": "uv",
       "args": [
-        "--directory", "/absolute/path/to/hubspot-content-mcp",
-        "run", "hubspot-content-mcp"
+        "--directory", "/absolute/path/to/hubspot-mcp-server",
+        "run", "hubspot-mcp-server"
       ]
     }
   }
@@ -185,13 +185,13 @@ Watch the key names: Claude Desktop and Cursor use `mcpServers`, VS Code uses `s
 Claude Code takes it on the command line:
 
 ```bash
-claude mcp add hubspot-content -- uv --directory /path/to/hubspot-content-mcp run hubspot-content-mcp
+claude mcp add hubspot-mcp-server -- uv --directory /path/to/hubspot-mcp-server run hubspot-mcp-server
 ```
 
 To poke at it by hand:
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory . run hubspot-content-mcp
+npx @modelcontextprotocol/inspector uv --directory . run hubspot-mcp-server
 ```
 
 ---
@@ -374,8 +374,8 @@ scopes the key carries. On other tiers the tool is registered and HubSpot
 answers 403 — the error says so in plain words rather than looking like a bug.
 
 **Per task rather than permanently**: register the server twice in your MCP
-client — once as `hubspot-content` with `ALLOW_PUBLISH=none`, once as
-`hubspot-content-publish` pointing at a second `.env` via
+client — once as `hubspot-mcp-server` with `ALLOW_PUBLISH=none`, once as
+`hubspot-mcp-server-publish` pointing at a second `.env` via
 `HUBSPOT_MCP_ENV_FILE`, and enable the second one only for the session where
 you need it. Most MCP clients let you toggle a server without editing config.
 
@@ -450,10 +450,10 @@ uv run pytest                    # 181 tests
 uv run ruff check src tests
 ```
 
-Adding a tool is two functions: an HTTP wrapper in `src/hubspot_content_mcp/hubspot/`, and an `@mcp.tool()` in the matching module under `tools/`. [CONTRIBUTING.md](CONTRIBUTING.md) has the full walkthrough and the rules a new tool has to follow.
+Adding a tool is two functions: an HTTP wrapper in `src/hubspot_mcp/hubspot/`, and an `@mcp.tool()` in the matching module under `tools/`. [CONTRIBUTING.md](CONTRIBUTING.md) has the full walkthrough and the rules a new tool has to follow.
 
 ```
-src/hubspot_content_mcp/
+src/hubspot_mcp/
 ├── server.py          FastMCP instance, tool registration
 ├── config.py          .env → frozen Settings
 ├── logging_setup.py   structlog, redaction, rotation

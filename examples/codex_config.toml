@@ -3,15 +3,15 @@
 # Codex speaks MCP over stdio, same as everything else here. Point it at the
 # checkout and it picks up all the tools.
 
-[mcp_servers.hubspot-content]
+[mcp_servers.hubspot-mcp-server]
 command = "uv"
 args = [
-  "--directory", "/absolute/path/to/hubspot-content-mcp",
-  "run", "hubspot-content-mcp",
+  "--directory", "/absolute/path/to/hubspot-mcp-server",
+  "run", "hubspot-mcp-server",
 ]
 
-[mcp_servers.hubspot-content.env]
-HUBSPOT_MCP_ENV_FILE = "/absolute/path/to/hubspot-content-mcp/.env"
+[mcp_servers.hubspot-mcp-server.env]
+HUBSPOT_MCP_ENV_FILE = "/absolute/path/to/hubspot-mcp-server/.env"
 
 # Defaults if you leave these out: publishing on for every content area,
 # CRM off. Set them explicitly if you want a narrower install.

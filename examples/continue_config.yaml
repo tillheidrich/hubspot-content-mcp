@@ -4,14 +4,14 @@ version: 0.0.1
 schema: v1
 
 mcpServers:
-  - name: hubspot-content
+  - name: hubspot-mcp-server
     command: uv
     args:
       - --directory
-      - /absolute/path/to/hubspot-content-mcp
+      - /absolute/path/to/hubspot-mcp-server
       - run
-      - hubspot-content-mcp
+      - hubspot-mcp-server
     env:
-      HUBSPOT_MCP_ENV_FILE: /absolute/path/to/hubspot-content-mcp/.env
+      HUBSPOT_MCP_ENV_FILE: /absolute/path/to/hubspot-mcp-server/.env
       ALLOW_PUBLISH: pages,blog
       ALLOW_CRM: none

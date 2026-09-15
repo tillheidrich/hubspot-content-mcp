@@ -15,14 +15,14 @@ import httpx
 import pytest
 import respx
 
-from hubspot_content_mcp.config import Settings
-from hubspot_content_mcp.hubspot import blog as hub_blog
-from hubspot_content_mcp.hubspot import emails as hub_emails
-from hubspot_content_mcp.hubspot import forms as hub_forms
-from hubspot_content_mcp.hubspot import pages as hub_pages
-from hubspot_content_mcp.hubspot.client import HubSpotError, path_segment
-from hubspot_content_mcp.logging_setup import RedactingFormatter, scrub
-from hubspot_content_mcp.models.common import wrap_untrusted
+from hubspot_mcp.config import Settings
+from hubspot_mcp.hubspot import blog as hub_blog
+from hubspot_mcp.hubspot import emails as hub_emails
+from hubspot_mcp.hubspot import forms as hub_forms
+from hubspot_mcp.hubspot import pages as hub_pages
+from hubspot_mcp.hubspot.client import HubSpotError, path_segment
+from hubspot_mcp.logging_setup import RedactingFormatter, scrub
+from hubspot_mcp.models.common import wrap_untrusted
 
 API = "https://api.hubapi.com"
 
@@ -215,7 +215,7 @@ def test_access_control_fields_cannot_be_changed(field):
 def test_spreadsheet_cells_are_inert(tmp_path, payload):
     from openpyxl import load_workbook
 
-    from hubspot_content_mcp.social.xlsx_writer import generate_social_bulk_xlsx
+    from hubspot_mcp.social.xlsx_writer import generate_social_bulk_xlsx
 
     out = generate_social_bulk_xlsx(
         [{"account": "Acme - LinkedIn", "scheduled_at": "2026-06-09T09:00:00", "message": payload}],
@@ -226,7 +226,7 @@ def test_spreadsheet_cells_are_inert(tmp_path, payload):
 
 
 def test_control_characters_do_not_crash_the_writer(tmp_path):
-    from hubspot_content_mcp.social.xlsx_writer import generate_social_bulk_xlsx
+    from hubspot_mcp.social.xlsx_writer import generate_social_bulk_xlsx
 
     out = generate_social_bulk_xlsx(
         [{"account": "A", "scheduled_at": "2026-06-09T09:00:00", "message": "a\x0bb\x00c"}],
@@ -294,12 +294,12 @@ def test_tracebacks_are_scrubbed_by_the_formatter():
 
 
 def test_debug_level_does_not_raise_http_library_loggers(tmp_path):
-    from hubspot_content_mcp.logging_setup import setup_logging
+    from hubspot_mcp.logging_setup import setup_logging
 
     setup_logging(tmp_path, level="DEBUG")
     assert logging.getLogger("httpcore").level == logging.WARNING
     assert logging.getLogger("httpx").level == logging.WARNING
-    assert logging.getLogger("hubspot_content_mcp").level == logging.DEBUG
+    assert logging.getLogger("hubspot_mcp").level == logging.DEBUG
 
 
 # --- rate limiting -----------------------------------------------------------

@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
-APP_DIR_NAME = ".hubspot-content-mcp"
+APP_DIR_NAME = ".hubspot-mcp-server"
 
 # The token is attached to every request as a bearer header, so the host it
 # is sent to is a security decision, not a configuration convenience.

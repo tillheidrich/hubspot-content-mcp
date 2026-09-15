@@ -7,6 +7,31 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-15
+
+A rename, and one stale claim removed.
+
+### Changed
+
+- **Renamed to `hubspot-mcp-server`.** The old name described the 0.1 scope and
+  stopped being true in 0.4.0, when the CRM, campaigns and publishing arrived.
+  The package is now `hubspot_mcp`, the console script and the MCP server name
+  are `hubspot-mcp-server`, and the example configs use that as the key.
+
+  If you installed 0.4.0 or earlier: the GitHub URL redirects, but your client
+  config points at a console script that no longer exists. Change the server
+  name and the `run` argument to `hubspot-mcp-server`, re-run `uv sync`, and
+  restart the client. Application data moves from `~/.hubspot-content-mcp/` to
+  `~/.hubspot-mcp-server/`; move or delete the old directory yourself, nothing
+  reads it any more.
+
+### Fixed
+
+- **The package docstring still promised there was no CRM surface.** Written
+  for 0.3.0, left untouched through 0.4.0, and wrong from the moment `ALLOW_CRM`
+  shipped. It now describes the boundary as configuration rather than as a
+  property of the package.
+
 ## [0.4.0] — 2026-09-15
 
 The scope changes here. Up to 0.3.0 this server's pitch was what it could not
@@ -266,6 +291,8 @@ First public release.
 - Connection test reports which scope a failure implies and treats the legacy
   template endpoint as optional.
 
-[Unreleased]: https://github.com/tillheidrich/hubspot-content-mcp/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/tillheidrich/hubspot-content-mcp/releases/tag/v0.3.0
-[0.2.0]: https://github.com/tillheidrich/hubspot-content-mcp/releases/tag/v0.2.0
+[Unreleased]: https://github.com/tillheidrich/hubspot-mcp-server/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/tillheidrich/hubspot-mcp-server/releases/tag/v0.5.0
+[0.4.0]: https://github.com/tillheidrich/hubspot-mcp-server/releases/tag/v0.4.0
+[0.3.0]: https://github.com/tillheidrich/hubspot-mcp-server/releases/tag/v0.3.0
+[0.2.0]: https://github.com/tillheidrich/hubspot-mcp-server/releases/tag/v0.2.0

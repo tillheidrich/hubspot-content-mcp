@@ -26,8 +26,8 @@ tools, docs fixes, tests — all welcome.
 ## Getting set up
 
 ```bash
-git clone https://github.com/tillheidrich/hubspot-content-mcp.git
-cd hubspot-content-mcp
+git clone https://github.com/tillheidrich/hubspot-mcp-server.git
+cd hubspot-mcp-server
 uv sync --extra dev
 
 cp .env.example .env    # only needed for --test-connection against a real portal
@@ -44,7 +44,7 @@ Two layers, always in this order.
 
 ### 1. The HTTP wrapper
 
-`src/hubspot_content_mcp/hubspot/<area>.py`. Knows about HubSpot, knows nothing
+`src/hubspot_mcp/hubspot/<area>.py`. Knows about HubSpot, knows nothing
 about MCP. Takes a client, returns parsed JSON.
 
 ```python
@@ -58,7 +58,7 @@ Look at `hubspot/pages.py::update_page_draft` for the shape.
 
 ### 2. The MCP tool
 
-`src/hubspot_content_mcp/tools/<area>.py`, inside `register()`:
+`src/hubspot_mcp/tools/<area>.py`, inside `register()`:
 
 ```python
 @mcp.tool()
@@ -106,13 +106,13 @@ written.
 
 ## Testing against a real portal
 
-`uv run hubspot-content-mcp --test-connection` does read-only probes against
+`uv run hubspot-mcp-server --test-connection` does read-only probes against
 every API area and tells you which scope is missing when one fails.
 
 To drive tools interactively:
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory . run hubspot-content-mcp
+npx @modelcontextprotocol/inspector uv --directory . run hubspot-mcp-server
 ```
 
 Use a sandbox portal for anything that writes. HubSpot offers free developer
