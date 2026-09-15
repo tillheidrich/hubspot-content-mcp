@@ -17,7 +17,10 @@ from .logging_setup import setup_logging
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hubspot-content-mcp",
-        description="Local MCP server for HubSpot content (drafts only, no CRM).",
+        description=(
+            "Local MCP server for HubSpot. Content, publishing and campaigns by "
+            "default; CRM only when ALLOW_CRM says so."
+        ),
     )
     parser.add_argument(
         "--test-connection",
@@ -73,13 +76,20 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_connection_test(settings: Settings) -> int:
-    """Read-only checks against every API area the server touches."""
-    from .hubspot import blog, discovery, emails, forms, pages
-    from .hubspot.client import HubSpotClient, HubSpotError
+    """Read-only checks against every API area this configuration enables.
 
+    Also prints the data boundary, because the claim worth checking is not
+    "the token works" but "what can this thing reach". Read-only throughout:
+    nothing here creates, changes or publishes anything.
+    """
+    from .hubspot import blog, campaigns, discovery, emails, forms, pages
+    from .hubspot.client import DEFAULT_SURFACES, HubSpotClient, HubSpotError
+
+    surfaces = list(DEFAULT_SURFACES) + (["crm"] if settings.crm_enabled else [])
     client = HubSpotClient(
         access_token=settings.hubspot_access_token,
         api_base=settings.hubspot_api_base,
+        surfaces=surfaces,
     )
 
     checks: list[tuple[str, str, object]] = [
@@ -90,8 +100,41 @@ def run_connection_test(settings: Settings) -> int:
         ("Forms", "forms", lambda: forms.list_forms(client, limit=1)[0]),
         ("Marketing emails", "content", lambda: emails.list_emails(client, limit=1)[0]),
         ("Domains", "content", lambda: discovery.list_domains(client, limit=1)),
+        (
+            "Campaigns",
+            "marketing.campaigns.read",
+            lambda: campaigns.list_campaigns(client, limit=1),
+        ),
         ("Templates (optional)", "content", lambda: discovery.list_templates(client, limit=1)),
     ]
+
+    if settings.crm_enabled:
+        from .hubspot import crm
+
+        checks += [
+            (
+                "CRM contacts",
+                "crm.objects.contacts.read",
+                lambda: crm.list_objects(client, "contacts", limit=1),
+            ),
+            (
+                "CRM companies",
+                "crm.objects.companies.read",
+                lambda: crm.list_objects(client, "companies", limit=1),
+            ),
+            (
+                "CRM deals",
+                "crm.objects.deals.read",
+                lambda: crm.list_objects(client, "deals", limit=1),
+            ),
+            ("CRM owners (optional)", "crm.objects.owners.read", lambda: crm.list_owners(client)),
+            (
+                "Contact lists (optional)",
+                "crm.lists.read",
+                lambda: crm.search_lists(client, limit=1),
+            ),
+            ("Workflows (optional)", "automation", lambda: crm.list_workflows(client, limit=1)),
+        ]
 
     out = sys.stderr
     print(f"hubspot-content-mcp {__version__} — connection test", file=out)
@@ -101,6 +144,32 @@ def run_connection_test(settings: Settings) -> int:
     )
     print(f"  Output dir: {settings.output_dir}", file=out)
     print(f"  Log dir:    {settings.log_dir}", file=out)
+    print("", file=out)
+
+    print("  What this configuration can reach", file=out)
+    print("  ---------------------------------", file=out)
+    publish = ", ".join(sorted(settings.publish_scope)) or "nothing — drafts only"
+    print(f"  Publishing:     {publish}", file=out)
+    print(f"  CRM access:     {settings.crm_scope or 'off'}", file=out)
+    if settings.crm_enabled:
+        print(
+            "  Personal data:  REACHABLE. Records the assistant reads are copied\n"
+            "                  into the conversation and reach your model provider.",
+            file=out,
+        )
+    else:
+        print(
+            "  Personal data:  out of reach. No CRM tool is registered and the\n"
+            "                  HTTP client refuses every CRM path, so no customer\n"
+            "                  data can enter a conversation.",
+            file=out,
+        )
+    print("", file=out)
+    print(
+        "  Your key's scopes are the outer limit either way — they are enforced\n"
+        "  by HubSpot, not by this server. The probes below show what they allow.",
+        file=out,
+    )
     print("", file=out)
 
     failures = 0
@@ -116,7 +185,8 @@ def run_connection_test(settings: Settings) -> int:
                 failures += 1
             hint = f" — needs the '{scope}' scope" if exc.status in (401, 403) else ""
             print(f"  [{marker}] {name}: HTTP {exc.status}{hint}", file=out)
-            print(f"         {exc.message}", file=out)
+            first_line = exc.message.strip().splitlines()[0] if exc.message else ""
+            print(f"         {first_line}", file=out)
         except Exception as exc:  # noqa: BLE001
             if not optional:
                 failures += 1
@@ -130,9 +200,10 @@ def run_connection_test(settings: Settings) -> int:
         return 0
 
     print(
-        f"{failures} check(s) failed. Confirm the private app or service key has the "
-        "'content' and 'forms' scopes, and that the token was copied without "
-        "surrounding whitespace.",
+        f"{failures} check(s) failed. Each line above names the scope it wanted. "
+        "Add it to the private app or service key in HubSpot, save, then paste the "
+        "new token into .env — re-scoping issues a new one. Also check the token "
+        "was copied without surrounding whitespace.",
         file=out,
     )
     return 1
