@@ -1,11 +1,11 @@
 {
-  "_comment": "Copy the hubspot-mcp-server block into your own claude_desktop_config.json. Replace the path. On Windows use forward slashes: C:/Users/you/hubspot-mcp-server",
+  "_comment": "Copy the hubspot-mcp-server block into your own claude_desktop_config.json. Replace the path. On Windows use forward slashes: C:/Users/you/hubspot-mcp",
   "mcpServers": {
     "hubspot-mcp-server": {
       "command": "uv",
       "args": [
         "--directory",
-        "/absolute/path/to/hubspot-mcp-server",
+        "/absolute/path/to/hubspot-mcp",
         "run",
         "hubspot-mcp-server"
       ]

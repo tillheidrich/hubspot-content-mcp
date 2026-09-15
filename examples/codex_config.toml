@@ -6,12 +6,12 @@
 [mcp_servers.hubspot-mcp-server]
 command = "uv"
 args = [
-  "--directory", "/absolute/path/to/hubspot-mcp-server",
+  "--directory", "/absolute/path/to/hubspot-mcp",
   "run", "hubspot-mcp-server",
 ]
 
 [mcp_servers.hubspot-mcp-server.env]
-HUBSPOT_MCP_ENV_FILE = "/absolute/path/to/hubspot-mcp-server/.env"
+HUBSPOT_MCP_ENV_FILE = "/absolute/path/to/hubspot-mcp/.env"
 
 # Defaults if you leave these out: publishing on for every content area,
 # CRM off. Set them explicitly if you want a narrower install.

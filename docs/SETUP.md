@@ -43,8 +43,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## 2. Get the code
 
 ```bash
-git clone https://github.com/tillheidrich/hubspot-mcp-server.git
-cd hubspot-mcp-server
+git clone https://github.com/tillheidrich/hubspot-mcp.git
+cd hubspot-mcp
 uv sync
 ```
 
@@ -133,8 +133,8 @@ uv run hubspot-mcp-server --test-connection
 hubspot-mcp-server 0.5.0 — connection test
   API base:   https://api.hubapi.com
   Portal ID:  12345678
-  Output dir: /Users/you/hubspot-mcp-server/output
-  Log dir:    /Users/you/hubspot-mcp-server/logs
+  Output dir: /Users/you/hubspot-mcp/output
+  Log dir:    /Users/you/hubspot-mcp/logs
 
   [ OK ] Landing pages: 1 item(s) readable
   [ OK ] Site pages: 1 item(s) readable
@@ -180,7 +180,7 @@ path:
     "hubspot-mcp-server": {
       "command": "uv",
       "args": [
-        "--directory", "/absolute/path/to/hubspot-mcp-server",
+        "--directory", "/absolute/path/to/hubspot-mcp",
         "run", "hubspot-mcp-server"
       ]
     }
@@ -192,7 +192,7 @@ If it already exists, add the `"hubspot-mcp-server"` block inside the existing
 `mcpServers` object, and mind the commas.
 
 On Windows, JSON treats `\` as an escape character. Use forward slashes —
-`C:/Users/you/hubspot-mcp-server` — or double the backslashes.
+`C:/Users/you/hubspot-mcp` — or double the backslashes.
 
 Now quit Claude Desktop **completely**: `Cmd+Q` on macOS, or right-click the
 tray icon and Quit on Windows. Closing the window is not enough; the config is
@@ -209,7 +209,7 @@ Try it:
 ### Claude Code
 
 ```bash
-claude mcp add hubspot-mcp-server -- uv --directory /absolute/path/to/hubspot-mcp-server run hubspot-mcp-server
+claude mcp add hubspot-mcp-server -- uv --directory /absolute/path/to/hubspot-mcp run hubspot-mcp-server
 ```
 
 ### Cursor
@@ -306,7 +306,7 @@ transactional email add-on. No scope fixes that. Send it from the HubSpot UI.
 ## Updating
 
 ```bash
-cd hubspot-mcp-server
+cd hubspot-mcp
 git pull
 uv sync
 ```

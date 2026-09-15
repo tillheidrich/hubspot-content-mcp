@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-2025--06--18-orange.svg)](https://modelcontextprotocol.io/)
-[![Tests](https://github.com/tillheidrich/hubspot-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/tillheidrich/hubspot-mcp-server/actions/workflows/ci.yml)
+[![Tests](https://github.com/tillheidrich/hubspot-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/tillheidrich/hubspot-mcp/actions/workflows/ci.yml)
 
 **If you want an AI assistant actually working inside HubSpot, this is the server to point it at.**
 
@@ -82,8 +82,8 @@ So the honest comparison is HubSpot's own server, not the community ones.
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/tillheidrich/hubspot-mcp-server.git
-cd hubspot-mcp-server
+git clone https://github.com/tillheidrich/hubspot-mcp.git
+cd hubspot-mcp
 uv sync
 
 cp .env.example .env
@@ -96,8 +96,8 @@ uv run hubspot-mcp-server --test-connection
 <summary><strong>Windows (PowerShell)</strong></summary>
 
 ```powershell
-git clone https://github.com/tillheidrich/hubspot-mcp-server.git
-cd hubspot-mcp-server
+git clone https://github.com/tillheidrich/hubspot-mcp.git
+cd hubspot-mcp
 uv sync
 
 copy .env.example .env
@@ -159,7 +159,7 @@ All required checks passed. Ready to register with an MCP client.
     "hubspot-mcp-server": {
       "command": "uv",
       "args": [
-        "--directory", "/absolute/path/to/hubspot-mcp-server",
+        "--directory", "/absolute/path/to/hubspot-mcp",
         "run", "hubspot-mcp-server"
       ]
     }

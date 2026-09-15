@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/tillheidrich/hubspot-mcp-server/security/advisories/new
+    url: https://github.com/tillheidrich/hubspot-mcp/security/advisories/new
     about: Report privately — do not open a public issue.
   - name: HubSpot API question
     url: https://developers.hubspot.com/docs/api/overview

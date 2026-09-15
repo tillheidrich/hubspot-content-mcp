@@ -56,10 +56,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tillheidrich/hubspot-mcp-server"
-Repository = "https://github.com/tillheidrich/hubspot-mcp-server"
-Issues = "https://github.com/tillheidrich/hubspot-mcp-server/issues"
-Changelog = "https://github.com/tillheidrich/hubspot-mcp-server/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/tillheidrich/hubspot-mcp"
+Repository = "https://github.com/tillheidrich/hubspot-mcp"
+Issues = "https://github.com/tillheidrich/hubspot-mcp/issues"
+Changelog = "https://github.com/tillheidrich/hubspot-mcp/blob/main/CHANGELOG.md"
 
 [project.scripts]
 hubspot-mcp-server = "hubspot_mcp.__main__:main"

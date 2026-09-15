@@ -39,8 +39,8 @@ fixes, tests — all welcome.
 ## Getting set up
 
 ```bash
-git clone https://github.com/tillheidrich/hubspot-mcp-server.git
-cd hubspot-mcp-server
+git clone https://github.com/tillheidrich/hubspot-mcp.git
+cd hubspot-mcp
 uv sync --extra dev
 
 cp .env.example .env    # only needed for --test-connection against a real portal

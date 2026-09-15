@@ -8,10 +8,10 @@ mcpServers:
     command: uv
     args:
       - --directory
-      - /absolute/path/to/hubspot-mcp-server
+      - /absolute/path/to/hubspot-mcp
       - run
       - hubspot-mcp-server
     env:
-      HUBSPOT_MCP_ENV_FILE: /absolute/path/to/hubspot-mcp-server/.env
+      HUBSPOT_MCP_ENV_FILE: /absolute/path/to/hubspot-mcp/.env
       ALLOW_PUBLISH: pages,blog
       ALLOW_CRM: none
